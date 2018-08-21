@@ -30,17 +30,19 @@ namespace Dapper.Database.Adapters
             {
                 cmd.Append($" RETURNING  {EscapeColumnList(tableInfo.GeneratedColumns)} INTO {EscapeParameters(tableInfo.GeneratedColumns)}");
 
-                var vals = connection.Query(cmd.ToString(), entityToInsert, transaction, commandTimeout: commandTimeout).ToList();
+                // Oracle does not return RETURNING values in a result set; rather, it returns them as InputOutput parameters.
+                // We need to wrap the incoming object in a DynamicParameters collection to get at the values.
+                var parameters = new DynamicParameters(entityToInsert);
+                var count = connection.Execute(cmd.ToString(), parameters, transaction, commandTimeout: commandTimeout);
 
-                if (!vals.Any()) return false;
+                if (count == 0) return false;
 
-                var rvals = ((IDictionary<string, object>)vals[0]);
-
-                foreach (var key in rvals.Keys)
+                foreach (var column in tableInfo.GeneratedColumns)
                 {
-                    var rval = rvals[key];
-                    var p = tableInfo.GeneratedColumns.Single(gp => gp.ColumnName.Equals(key, StringComparison.OrdinalIgnoreCase)).Property;
-                    p.SetValue(entityToInsert, Convert.ChangeType(rval, p.PropertyType), null);
+                    var property = column.Property;
+                    var paramName = parameters.ParameterNames.Single(p => column.ColumnName.Equals(p, StringComparison.OrdinalIgnoreCase));
+
+                    property.SetValue(entityToInsert, Convert.ChangeType(parameters.Get<object>(paramName), property.PropertyType), null);
                 }
 
                 return true;
@@ -70,17 +72,19 @@ namespace Dapper.Database.Adapters
             {
                 cmd.Append($" RETURNING  {EscapeColumnList(tableInfo.GeneratedColumns)} INTO {EscapeParameters(tableInfo.GeneratedColumns)}");
 
-                var vals = connection.Query(cmd.ToString(), entityToUpdate, transaction, commandTimeout: commandTimeout).ToList();
+                // Oracle does not return RETURNING values in a result set; rather, it returns them as InputOutput parameters.
+                // We need to wrap the incoming object in a DynamicParameters collection to get at the values.
+                var parameters = new DynamicParameters(entityToUpdate);
+                var count = connection.Execute(cmd.ToString(), parameters, transaction, commandTimeout: commandTimeout);
 
-                if (!vals.Any()) return false;
+                if (count == 0) return false;
 
-                var rvals = ((IDictionary<string, object>)vals[0]);
-
-                foreach (var key in rvals.Keys)
+                foreach (var column in tableInfo.GeneratedColumns)
                 {
-                    var rval = rvals[key];
-                    var p = tableInfo.GeneratedColumns.Single(gp => gp.ColumnName.Equals(key, StringComparison.OrdinalIgnoreCase)).Property;
-                    p.SetValue(entityToUpdate, Convert.ChangeType(rval, p.PropertyType), null);
+                    var property = column.Property;
+                    var paramName = parameters.ParameterNames.Single(p => column.ColumnName.Equals(p, StringComparison.OrdinalIgnoreCase));
+
+                    property.SetValue(entityToUpdate, Convert.ChangeType(parameters.Get<object>(paramName), property.PropertyType), null);
                 }
 
                 return true;
@@ -108,19 +112,19 @@ namespace Dapper.Database.Adapters
             {
                 cmd.Append($" RETURNING  {EscapeColumnList(tableInfo.GeneratedColumns)} INTO {EscapeParameters(tableInfo.GeneratedColumns)}");
 
-                var rslt = await connection.QueryAsync(cmd.ToString(), entityToInsert, transaction, commandTimeout: commandTimeout);
+                // Oracle does not return RETURNING values in a result set; rather, it returns them as InputOutput parameters.
+                // We need to wrap the incoming object in a DynamicParameters collection to get at the values.
+                var parameters = new DynamicParameters(entityToInsert);
+                var count = await connection.ExecuteAsync(cmd.ToString(), parameters, transaction, commandTimeout: commandTimeout);
 
-                var vals = rslt.ToList();
+                if (count == 0) return false;
 
-                if (!vals.Any()) return false;
-
-                var rvals = ((IDictionary<string, object>)vals[0]);
-
-                foreach (var key in rvals.Keys)
+                foreach (var column in tableInfo.GeneratedColumns)
                 {
-                    var rval = rvals[key];
-                    var p = tableInfo.GeneratedColumns.Single(gp => gp.ColumnName.Equals(key, StringComparison.OrdinalIgnoreCase)).Property;
-                    p.SetValue(entityToInsert, Convert.ChangeType(rval, p.PropertyType), null);
+                    var property = column.Property;
+                    var paramName = parameters.ParameterNames.Single(p => column.ColumnName.Equals(p, StringComparison.OrdinalIgnoreCase));
+
+                    property.SetValue(entityToInsert, Convert.ChangeType(parameters.Get<object>(paramName), property.PropertyType), null);
                 }
 
                 return true;
@@ -150,19 +154,19 @@ namespace Dapper.Database.Adapters
             {
                 cmd.Append($" RETURNING  {EscapeColumnList(tableInfo.GeneratedColumns)} INTO {EscapeParameters(tableInfo.GeneratedColumns)}");
 
-                var rslt = await connection.QueryAsync(cmd.ToString(), entityToUpdate, transaction, commandTimeout: commandTimeout);
+                // Oracle does not return RETURNING values in a result set; rather, it returns them as InputOutput parameters.
+                // We need to wrap the incoming object in a DynamicParameters collection to get at the values.
+                var parameters = new DynamicParameters(entityToUpdate);
+                var count = await connection.ExecuteAsync(cmd.ToString(), parameters, transaction, commandTimeout: commandTimeout);
 
-                var vals = rslt.ToList();
+                if (count == 0) return false;
 
-                if (!vals.Any()) return false;
-
-                var rvals = ((IDictionary<string, object>)vals[0]);
-
-                foreach (var key in rvals.Keys)
+                foreach (var column in tableInfo.GeneratedColumns)
                 {
-                    var rval = rvals[key];
-                    var p = tableInfo.GeneratedColumns.Single(gp => gp.ColumnName.Equals(key, StringComparison.OrdinalIgnoreCase)).Property;
-                    p.SetValue(entityToUpdate, Convert.ChangeType(rval, p.PropertyType), null);
+                    var property = column.Property;
+                    var paramName = parameters.ParameterNames.Single(p => column.ColumnName.Equals(p, StringComparison.OrdinalIgnoreCase));
+
+                    property.SetValue(entityToUpdate, Convert.ChangeType(parameters.Get<object>(paramName), property.PropertyType), null);
                 }
 
                 return true;
@@ -195,11 +199,5 @@ namespace Dapper.Database.Adapters
         /// Returns the format for parameter
         /// </summary>
         public override string EscapeParameter(string value) => $":{value}";
-
-        public override string DeleteQuery(TableInfo tableInfo, string sql)
-        {
-            var x = base.DeleteQuery(tableInfo, sql);
-            return x;
-        }
     }
 }
