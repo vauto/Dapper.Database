@@ -131,4 +131,9 @@
     <DefineConstants>TRACE;DEBUG;NET452;Testing</DefineConstants>
   </PropertyGroup>
 
+  <PropertyGroup Condition="'$(TargetFramework)' != 'netcoreapp1.0'">
+    <DefineConstants>$(DefineConstants);ORACLE</DefineConstants>
+  </PropertyGroup>
+
+
 </Project>

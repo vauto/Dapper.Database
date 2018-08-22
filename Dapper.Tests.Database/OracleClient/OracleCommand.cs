@@ -1,13 +1,18 @@
-﻿#if !NETCOREAPP1_0
-using System;
+﻿using System;
 using System.Data;
 using System.Data.Common;
 using System.Threading;
 using System.Threading.Tasks;
-using Oracle.ManagedDataAccess.Client;
+
+#if !NETCOREAPP1_0
+using OracleTransaction = Oracle.ManagedDataAccess.Client.OracleTransaction; // not wrapping this one
 using RealOracleCommand = Oracle.ManagedDataAccess.Client.OracleCommand;
 using RealOracleConnection = Oracle.ManagedDataAccess.Client.OracleConnection;
+using RealOracleParameter = Oracle.ManagedDataAccess.Client.OracleParameter;
+using RealOracleParameterCollection = Oracle.ManagedDataAccess.Client.OracleParameterCollection;
+#endif
 
+#if !NETCOREAPP1_0
 namespace Dapper.Tests.Database.OracleClient
 {
     /// <summary>
@@ -19,7 +24,7 @@ namespace Dapper.Tests.Database.OracleClient
     /// </remarks>
     public class OracleCommand : DbCommand
     {
-        private readonly RealOracleCommand _command;
+        internal RealOracleCommand RealCommand { get; }
         private OracleConnection _connection;
 
         /// <summary>
@@ -29,30 +34,30 @@ namespace Dapper.Tests.Database.OracleClient
         internal OracleCommand(OracleConnection connection)
         {
             _connection = connection;
-            _command = connection.Connection.CreateCommand();
+            RealCommand = connection.RealConnection.CreateCommand();
         }
 
         protected override void Dispose(bool disposing)
         {
             if (disposing)
             {
-                _command?.Dispose();
+                RealCommand?.Dispose();
             }
 
             base.Dispose(disposing);
         }
 
-        public override void Cancel() => _command.Cancel();
+        public override void Cancel() => RealCommand.Cancel();
 
-        protected override DbParameter CreateDbParameter() => _command.CreateParameter();
+        protected override DbParameter CreateDbParameter() => new OracleParameter(RealCommand.CreateParameter());
 
-        protected override DbDataReader ExecuteDbDataReader(CommandBehavior behavior) => _command.ExecuteReader(behavior);
+        protected override DbDataReader ExecuteDbDataReader(CommandBehavior behavior) => RealCommand.ExecuteReader(behavior);
 
-        public override int ExecuteNonQuery() => _command.ExecuteNonQuery();
+        public override int ExecuteNonQuery() => RealCommand.ExecuteNonQuery();
 
-        public override object ExecuteScalar() => _command.ExecuteScalar();
+        public override object ExecuteScalar() => RealCommand.ExecuteScalar();
 
-        public override void Prepare() => _command.Prepare();
+        public override void Prepare() => RealCommand.Prepare();
 
         private string _rawCommandText;
 
@@ -64,20 +69,20 @@ namespace Dapper.Tests.Database.OracleClient
                 if (_rawCommandText == value) return;
 
                 _rawCommandText = value;
-                _command.CommandText = value?.Replace('@', ':'); // FIXME more granular
+                RealCommand.CommandText = value?.Replace('@', ':'); // FIXME more granular
             }
         }
 
         public override int CommandTimeout
         {
-            get => _command.CommandTimeout;
-            set => _command.CommandTimeout = value;
+            get => RealCommand.CommandTimeout;
+            set => RealCommand.CommandTimeout = value;
         }
 
         public override CommandType CommandType
         {
-            get => _command.CommandType;
-            set => _command.CommandType = value;
+            get => RealCommand.CommandType;
+            set => RealCommand.CommandType = value;
         }
 
         public new OracleConnection Connection
@@ -88,7 +93,7 @@ namespace Dapper.Tests.Database.OracleClient
                 if (_connection == value) return;
 
                 _connection = value;
-                _command.Connection = _connection?.Connection;
+                RealCommand.Connection = _connection?.RealConnection;
             }
         }
 
@@ -106,7 +111,7 @@ namespace Dapper.Tests.Database.OracleClient
                         Connection = connection;
                         break;
                     case RealOracleConnection connection:
-                        if (Connection?.Connection != connection)
+                        if (Connection?.RealConnection != connection)
                         {
                             Connection = new OracleConnection(connection);
                         }
@@ -117,37 +122,48 @@ namespace Dapper.Tests.Database.OracleClient
             }
         }
 
-        protected override DbParameterCollection DbParameterCollection => _command.Parameters;
+        protected override DbParameterCollection DbParameterCollection => Parameters;
 
-        public new OracleParameterCollection Parameters => _command.Parameters;
+        private OracleParameterCollection _parameters;
+
+        public new OracleParameterCollection Parameters
+        {
+            get
+            {
+                if (_parameters == null)
+                    _parameters = new OracleParameterCollection(RealCommand.Parameters);
+
+                return _parameters; 
+            }
+        }
 
         protected override DbTransaction DbTransaction
         {
-            get => _command.Transaction;
-            set => _command.Transaction = (OracleTransaction)value;
+            get => RealCommand.Transaction;
+            set => RealCommand.Transaction = (OracleTransaction)value;
         }
 
         public new OracleTransaction Transaction
         {
-            get => _command.Transaction;
-            set => _command.Transaction = value;
+            get => RealCommand.Transaction;
+            set => RealCommand.Transaction = value;
         }
 
         public override UpdateRowSource UpdatedRowSource
         {
-            get => _command.UpdatedRowSource;
-            set => _command.UpdatedRowSource = value;
+            get => RealCommand.UpdatedRowSource;
+            set => RealCommand.UpdatedRowSource = value;
         }
 
         public override bool DesignTimeVisible
         {
-            get => _command.DesignTimeVisible;
-            set => _command.DesignTimeVisible = value;
+            get => RealCommand.DesignTimeVisible;
+            set => RealCommand.DesignTimeVisible = value;
         }
 
-        public override Task<object> ExecuteScalarAsync(CancellationToken cancellationToken) => _command.ExecuteScalarAsync(cancellationToken);
-        public override Task<int> ExecuteNonQueryAsync(CancellationToken cancellationToken) => _command.ExecuteNonQueryAsync(cancellationToken);
-        protected override Task<DbDataReader> ExecuteDbDataReaderAsync(CommandBehavior behavior, CancellationToken cancellationToken) => _command.ExecuteReaderAsync(behavior, cancellationToken);
+        public override Task<object> ExecuteScalarAsync(CancellationToken cancellationToken) => RealCommand.ExecuteScalarAsync(cancellationToken);
+        public override Task<int> ExecuteNonQueryAsync(CancellationToken cancellationToken) => RealCommand.ExecuteNonQueryAsync(cancellationToken);
+        protected override Task<DbDataReader> ExecuteDbDataReaderAsync(CommandBehavior behavior, CancellationToken cancellationToken) => RealCommand.ExecuteReaderAsync(behavior, cancellationToken);
     }
 }
 #endif
