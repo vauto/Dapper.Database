@@ -7,6 +7,7 @@ using Xunit;
 
 #if !NETCOREAPP1_0
 using Oracle.ManagedDataAccess.Client;
+using OracleConnection = Dapper.Tests.Database.OracleClient.OracleConnection;
 #endif
 
 namespace Dapper.Tests.Database
@@ -40,7 +41,7 @@ namespace Dapper.Tests.Database
             SqlMapper.AddTypeHandler<Guid>(new GuidTypeHandler());
             try
             {
-                using ( var connection = new OracleConnection(ConnectionString) )
+                using (var connection = new OracleConnection(ConnectionString))
                 {
                     connection.Open();
 
@@ -64,13 +65,14 @@ namespace Dapper.Tests.Database
                     connection.Execute("delete from Person");
                 }
             }
-
-            catch (SocketException e)
+            catch (OracleException e) when (e.Message.StartsWith("ORA-12541", StringComparison.OrdinalIgnoreCase))
             {
-                if (e.Message.Contains("No connection could be made because the target machine actively refused it"))
-                    _skip = true;
-                else
-                    throw;
+                _skip = true;
+
+            }
+            catch (SocketException e) when (e.Message.Contains("No connection could be made because the target machine actively refused it"))
+            {
+                _skip = true;
             }
         }
     }
