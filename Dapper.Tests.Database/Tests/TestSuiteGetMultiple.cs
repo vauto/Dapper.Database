@@ -31,8 +31,8 @@ namespace Dapper.Tests.Database
                     using (var trans = db.GetTransaction())
                     {
                         var dt = db.GetMultiple(@"
-                        select * from product where Color = 'Black';
-                        select * from productcategory where productcategoryid = '21';");
+                        select * from Product where Color = 'Black';
+                        select * from ProductCategory where productcategoryid = '21';");
                         Assert.Equal(89, dt.Read(typeof(Product)).Count());
 
                         var pc = (ProductCategory)dt.ReadSingle(typeof(ProductCategory));
@@ -55,8 +55,8 @@ namespace Dapper.Tests.Database
                     using (var trans = db.GetTransaction())
                     {
                         var dt = db.GetMultiple(@"
-                        select * from product where Color = @Color;
-                        select * from productcategory where productcategoryid = @ProductCategoryId;",
+                        select * from Product where Color = @Color;
+                        select * from ProductCategory where productcategoryid = @ProductCategoryId;",
                             new { Color = "Black", ProductCategoryId = 21 });
                         Assert.Equal(89, dt.Read(typeof(Product)).Count());
 

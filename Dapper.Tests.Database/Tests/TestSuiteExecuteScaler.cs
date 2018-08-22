@@ -25,7 +25,7 @@ namespace Dapper.Tests.Database
         {
             using (var db = GetSqlDatabase())
             {
-                Assert.Equal(102.29m, db.ExecuteScaler<decimal>("select listprice from product where productid = 806"));
+                Assert.Equal(102.29m, db.ExecuteScaler<decimal>("select listprice from Product where productid = 806"));
             }
         }
 
@@ -36,7 +36,7 @@ namespace Dapper.Tests.Database
         {
             using (var db = GetSqlDatabase())
             {
-                Assert.Equal(102.29m, db.ExecuteScaler<decimal>("select listprice from product where productid = @ProductId", new { ProductId = 806 }));
+                Assert.Equal(102.29m, db.ExecuteScaler<decimal>("select listprice from Product where productid = @ProductId", new { ProductId = 806 }));
             }
         }
 
