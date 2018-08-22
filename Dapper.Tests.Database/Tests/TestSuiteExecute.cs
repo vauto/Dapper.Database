@@ -25,7 +25,7 @@ namespace Dapper.Tests.Database
         {
             using (var db = GetSqlDatabase())
             {
-                Assert.Equal(89, db.Execute("update product set color = 'Black' where Color = 'Black'"));
+                Assert.Equal(89, db.Execute("update Product set color = 'Black' where Color = 'Black'"));
             }
         }
 
@@ -36,7 +36,7 @@ namespace Dapper.Tests.Database
         {
             using (var db = GetSqlDatabase())
             {
-                Assert.Equal(89, db.Execute("update product set color = @Color where Color = @Color", new { Color = "Black" }));
+                Assert.Equal(89, db.Execute("update Product set color = @Color where Color = @Color", new { Color = "Black" }));
             }
         }
 
