@@ -245,12 +245,12 @@ namespace Dapper.Database.Adapters
         /// <summary>
         /// Returns the format for table name
         /// </summary>
-        public override string EscapeTableName(string value) => $"{value}";
+        public override string EscapeTableName(string value) => $"\"{value.ToUpperInvariant()}\"";
 
         /// <summary>
         /// Returns the format for column
         /// </summary>
-        public override string EscapeColumnn(string value) => $"{value}";
+        public override string EscapeColumnn(string value) => $"\"{value.ToUpperInvariant()}\"";
 
         /// <summary>
         /// Returns the format for parameter
