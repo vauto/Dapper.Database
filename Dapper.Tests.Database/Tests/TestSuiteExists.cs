@@ -99,9 +99,16 @@ namespace Dapper.Tests.Database
             {
                 var tsql = "; select 1 AS ProductId";
                 var fsql = "; select 0 AS ProductId";
-                if ( GetProvider() == Provider.Firebird){
-                    tsql += " from RDB$Database";
-                    fsql += " from RDB$Database";
+                switch (GetProvider())
+                {
+                    case Provider.Firebird:
+                        tsql += " from RDB$Database";
+                        fsql += " from RDB$Database";
+                        break;
+                    case Provider.Oracle:
+                        tsql += " from dual";
+                        fsql += " from dual";
+                        break;
                 }
                 Assert.True(db.Exists<Product>(tsql));
                 Assert.False(db.Exists<Product>(fsql));
