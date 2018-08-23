@@ -64,6 +64,8 @@ namespace Dapper.Database.Adapters
 
             // Oracle supports binding the offset and page size.
             // Use variable names that are unlikely to be used as parameters, and that are safe to use with ODP.NET and Dapper.
+            // NOTE: this explicitly won't work with Oracle.ManagedDataAccess 12.1.x, only 12.2 and later.
+            // It works with all versions of Oracle.ManagedDataAccess.Core, however...
             parameters.Add("PAGE_SKIP$$", pageSkip, DbType.Int64);
             parameters.Add("PAGE_SIZE$$", pageSize, DbType.Int64);
 
