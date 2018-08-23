@@ -8,13 +8,11 @@ using System.Threading.Tasks;
 using OracleTransaction = Oracle.ManagedDataAccess.Client.OracleTransaction; // not wrapping this one
 using RealOracleCommand = Oracle.ManagedDataAccess.Client.OracleCommand;
 using RealOracleConnection = Oracle.ManagedDataAccess.Client.OracleConnection;
-using RealOracleParameter = Oracle.ManagedDataAccess.Client.OracleParameter;
-using RealOracleParameterCollection = Oracle.ManagedDataAccess.Client.OracleParameterCollection;
 #endif
 
-#if !NETCOREAPP1_0
 namespace Dapper.Tests.Database.OracleClient
 {
+#if !NETCOREAPP1_0
     /// <summary>
     /// Wrapper of <see cref="RealOracleCommand"/> whose sole purpose is to massage standard Dapper SQL into Oracle SQL.
     /// </summary>
@@ -71,6 +69,24 @@ namespace Dapper.Tests.Database.OracleClient
                 _rawCommandText = value;
                 RealCommand.CommandText = value?.Replace('@', ':'); // FIXME more granular
             }
+        }
+
+        public bool BindByName
+        {
+            get => RealCommand.BindByName;
+            set => RealCommand.BindByName = value;
+        }
+
+        public int InitialLOBFetchSize
+        {
+            get => RealCommand.InitialLOBFetchSize;
+            set => RealCommand.InitialLOBFetchSize = value;
+        }
+
+        public int InitialLONGFetchSize
+        {
+            get => RealCommand.InitialLONGFetchSize;
+            set => RealCommand.InitialLONGFetchSize = value;
         }
 
         public override int CommandTimeout
@@ -165,5 +181,5 @@ namespace Dapper.Tests.Database.OracleClient
         public override Task<int> ExecuteNonQueryAsync(CancellationToken cancellationToken) => RealCommand.ExecuteNonQueryAsync(cancellationToken);
         protected override Task<DbDataReader> ExecuteDbDataReaderAsync(CommandBehavior behavior, CancellationToken cancellationToken) => RealCommand.ExecuteReaderAsync(behavior, cancellationToken);
     }
-}
 #endif
+}
