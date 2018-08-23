@@ -9,10 +9,9 @@ using RealOracleParameter = Oracle.ManagedDataAccess.Client.OracleParameter;
 using RealOracleParameterCollection = Oracle.ManagedDataAccess.Client.OracleParameterCollection;
 #endif
 
-#if !NETCOREAPP1_0
-
 namespace Dapper.Tests.Database.OracleClient
 {
+#if !NETCOREAPP1_0
     public class OracleParameterCollection : DbParameterCollection
     {
         private readonly RealOracleParameterCollection _realParameters;
@@ -142,7 +141,7 @@ namespace Dapper.Tests.Database.OracleClient
 
         protected override void SetParameter(int index, DbParameter value)
         {
-            SetParameterInternal(index, (OracleParameter) value);
+            SetParameterInternal(index, (OracleParameter)value);
         }
 
         protected override void SetParameter(string parameterName, DbParameter value)
@@ -164,10 +163,7 @@ namespace Dapper.Tests.Database.OracleClient
 
         public override bool Contains(string value) => _realParameters.Contains(value);
 
-        public override void CopyTo(Array array, int index)
-        {
-            _parameters.CopyTo((OracleParameter[])array, index);
-        }
+        public override void CopyTo(Array array, int index) => _parameters.CopyTo((OracleParameter[])array, index);
 
         public override void AddRange(Array values)
         {
@@ -175,5 +171,5 @@ namespace Dapper.Tests.Database.OracleClient
                 Add(obj);
         }
     }
-}
 #endif
+}

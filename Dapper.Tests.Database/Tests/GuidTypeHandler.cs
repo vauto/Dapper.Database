@@ -1,9 +1,9 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Data;
-using Dapper.Tests.Database.Extensions;
-#if ORACLE
-using Dapper.Tests.Database.OracleClient;
-#endif
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
 
 namespace Dapper.Tests.Database
 {
@@ -11,29 +11,21 @@ namespace Dapper.Tests.Database
     {
         public override Guid Parse(object value)
         {
-            switch (value)
+            if (value is string)
             {
-                case string s:
-                    return new Guid(s);
-                case byte[] b:
-                    return GuidExtensions.ToGuid(b);
-                default:
-                    return (Guid)value;
+                return new Guid(value as string);
             }
+            if (value is byte[])
+            {
+                var inVal = (byte[])value;
+                byte[] outVal = new byte[] { inVal[3], inVal[2], inVal[1], inVal[0], inVal[5], inVal[4], inVal[7], inVal[6], inVal[8], inVal[9], inVal[10], inVal[11], inVal[12], inVal[13], inVal[14], inVal[15] };
+                return new Guid(outVal);
+            }
+            return (Guid)value;
         }
 
         public override void SetValue(IDbDataParameter parameter, Guid value)
         {
-#if ORACLE
-            switch (parameter)
-            {
-                case OracleParameter _:
-                    // Oracle does not like Guids.
-                    parameter.Value = GuidExtensions.ToByteArray(value);
-                    return;
-            }
-#endif
-            // Everyone else...
             parameter.Value = value;
         }
     }

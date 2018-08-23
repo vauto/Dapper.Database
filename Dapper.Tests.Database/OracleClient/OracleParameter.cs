@@ -1,14 +1,14 @@
 ﻿using System;
 using System.Data;
-using Dapper.Tests.Database.Extensions;
 
 #if !NETCOREAPP1_0
+using Oracle.ManagedDataAccess.Types;
 using RealOracleParameter = Oracle.ManagedDataAccess.Client.OracleParameter;
 #endif
 
-#if !NETCOREAPP1_0
 namespace Dapper.Tests.Database.OracleClient
 {
+#if !NETCOREAPP1_0
     public class OracleParameter : System.Data.Common.DbParameter
     {
         internal RealOracleParameter RealParameter { get; }
@@ -74,15 +74,22 @@ namespace Dapper.Tests.Database.OracleClient
             get
             {
                 var realDbType = RealParameter.DbType;
-                if (_dbType != realDbType)
+                if (_dbType == DbType.Guid && realDbType == DbType.Binary)
                 {
-                    if (_dbType == DbType.Guid && realDbType == DbType.Binary)
+                    switch (RealParameter.Value)
                     {
-                        var bytes = (byte[])RealParameter.Value;
-                        return bytes?.ToGuid();
+                        case null:
+                            return null;
+                        case DBNull _:
+                            return null;
+                        case byte[] b:
+                            return new Guid(b);
+                        case OracleBinary b:
+                            return b.IsNull ? (Guid?)null : new Guid(b.Value);
+                        default:
+                            // *shrug*
+                            return (Guid)RealParameter.Value;
                     }
-
-                    throw new InvalidOperationException($"Value mapping (internal={realDbType}, external={_dbType}) is not mapped");
                 }
 
                 return RealParameter.Value;
@@ -93,9 +100,7 @@ namespace Dapper.Tests.Database.OracleClient
                 {
                     case Guid guid:
                         // Oracle does not like Guids.
-                        var bytes = GuidExtensions.ToByteArray(guid);
-                        RealParameter.Value = bytes;
-                        //Size = bytes.Length;
+                        RealParameter.Value = guid.ToByteArray();
                         break;
                     default:
                         RealParameter.Value = value;
@@ -135,7 +140,5 @@ namespace Dapper.Tests.Database.OracleClient
             set => RealParameter.SourceVersion = value;
         }
     }
-}
-
-
 #endif
+}

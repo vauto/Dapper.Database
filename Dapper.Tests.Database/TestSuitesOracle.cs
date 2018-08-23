@@ -3,6 +3,7 @@ using System.IO;
 using System.Net.Sockets;
 using System.Text.RegularExpressions;
 using Dapper.Database;
+using Dapper.Tests.Database.Tests;
 using Xunit;
 
 #if !NETCOREAPP1_0
@@ -38,7 +39,12 @@ namespace Dapper.Tests.Database
 
         static OracleTestSuite()
         {
-            SqlMapper.AddTypeHandler<Guid>(new GuidTypeHandler());
+            // Oracle's driver has a complicated relationship with Guids.
+            // It tries to ignore them, but apparently allows them for EF queries.
+            // When it does, it uses the builtin <see cref="Guid(byte[])"/> constructor,
+            // which is little-endian.
+            // So Oracle basically treats them as little-endian when it actually does deal with them...
+            SqlMapper.AddTypeHandler(new LittleEndianGuidTypeHandler());
             try
             {
                 using (var connection = new OracleConnection(ConnectionString))
@@ -65,8 +71,9 @@ namespace Dapper.Tests.Database
                     connection.Execute("delete from Person");
                 }
             }
-            catch (OracleException e) when (e.Message.StartsWith("ORA-12541", StringComparison.OrdinalIgnoreCase))
+            catch (OracleException e) when (e.Message.StartsWith("ORA-125", StringComparison.OrdinalIgnoreCase))
             {
+                // All ORA- errors (12500-12599) are TNS errors indicating connectivity.
                 _skip = true;
 
             }
