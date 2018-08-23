@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Data;
+using Dapper.Tests.Database.Extensions;
 #if ORACLE
 using Dapper.Tests.Database.OracleClient;
 #endif
@@ -8,13 +9,6 @@ namespace Dapper.Tests.Database
 {
     public class GuidTypeHandler : SqlMapper.TypeHandler<Guid>
     {
-        /// <summary>
-        /// Flips bytes' endianness.
-        /// </summary>
-        /// <param name="b"></param>
-        /// <returns></returns>
-        private byte[] FlipGuidBytes(byte[] b) => new[]{ b[3], b[2], b[1], b[0], b[5], b[4], b[7], b[6], b[8], b[9], b[10], b[11], b[12], b[13], b[14], b[15] };
-
         public override Guid Parse(object value)
         {
             switch (value)
@@ -22,7 +16,7 @@ namespace Dapper.Tests.Database
                 case string s:
                     return new Guid(s);
                 case byte[] b:
-                    return new Guid(FlipGuidBytes(b));
+                    return GuidExtensions.ToGuid(b);
                 default:
                     return (Guid)value;
             }
@@ -35,7 +29,7 @@ namespace Dapper.Tests.Database
             {
                 case OracleParameter _:
                     // Oracle does not like Guids.
-                    parameter.Value = FlipGuidBytes(value.ToByteArray());
+                    parameter.Value = GuidExtensions.ToByteArray(value);
                     return;
             }
 #endif

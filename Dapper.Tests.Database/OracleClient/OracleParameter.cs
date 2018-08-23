@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Data;
+using Dapper.Tests.Database.Extensions;
 
 #if !NETCOREAPP1_0
 using RealOracleParameter = Oracle.ManagedDataAccess.Client.OracleParameter;
@@ -16,12 +17,20 @@ namespace Dapper.Tests.Database.OracleClient
 
         public override void ResetDbType() => RealParameter.ResetDbType();
 
+        /// <summary>
+        /// The nominal DbType.
+        /// </summary>
+        private DbType _dbType;
+
         public override DbType DbType
         {
-            get => RealParameter.DbType;
+            get => _dbType;
             set
             {
-                switch (value)
+                if (_dbType == value) return;
+
+                _dbType = value;
+                switch (_dbType)
                 {
                     case DbType.Guid:
                         // Oracle does not support DbType.Guid.
@@ -30,7 +39,7 @@ namespace Dapper.Tests.Database.OracleClient
                         break;
                     default:
                         // Let Oracle sort the rest out
-                        RealParameter.DbType = value;
+                        RealParameter.DbType = _dbType;
                         break;
                 }
             }
@@ -62,13 +71,32 @@ namespace Dapper.Tests.Database.OracleClient
 
         public override object Value
         {
-            get => RealParameter.Value;
+            get
+            {
+                var realDbType = RealParameter.DbType;
+                if (_dbType != realDbType)
+                {
+                    if (_dbType == DbType.Guid && realDbType == DbType.Binary)
+                    {
+                        var bytes = (byte[])RealParameter.Value;
+                        return bytes?.ToGuid();
+                    }
+
+                    throw new InvalidOperationException($"Value mapping (internal={realDbType}, external={_dbType}) is not mapped");
+                }
+
+                return RealParameter.Value;
+            }
             set
             {
                 switch (value)
                 {
-                    case Guid _:
-                        throw new ArgumentException("Oracle does not like guids");
+                    case Guid guid:
+                        // Oracle does not like Guids.
+                        var bytes = GuidExtensions.ToByteArray(guid);
+                        RealParameter.Value = bytes;
+                        //Size = bytes.Length;
+                        break;
                     default:
                         RealParameter.Value = value;
                         break;
