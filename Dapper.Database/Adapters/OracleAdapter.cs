@@ -39,6 +39,29 @@ namespace Dapper.Database.Adapters
         }
 
         /// <summary>
+        /// Oracle implementation of a a paged sql statement
+        /// </summary>
+        /// <param name="tableInfo">table information about the entity</param>
+        /// <param name="page">the page to request</param>
+        /// <param name="pageSize">the size of the page to request</param>
+        /// <param name="sql">a sql statement or partial statement</param>
+        /// <returns>A paginated sql statement</returns>
+        public override string GetPageListQuery(TableInfo tableInfo, long page, long pageSize, string sql)
+        {
+            var q = new SqlParser(GetListQuery(tableInfo, sql));
+            var pageSkip = (page - 1) * pageSize;
+
+            var sqlOrderBy = string.Empty;
+
+            if (string.IsNullOrEmpty(q.OrderByClause) && tableInfo.KeyColumns.Any())
+            {
+                sqlOrderBy = $"order by {EscapeColumnn(tableInfo.KeyColumns.First().ColumnName)}";
+            }
+
+            return $"{q.Sql} {sqlOrderBy} offset {pageSkip} rows fetch next {pageSize} rows only";
+        }
+
+        /// <summary>
         /// Inserts an entity into table "Ts"
         /// </summary>
         /// <param name="connection">Open SqlConnection</param>
