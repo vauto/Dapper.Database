@@ -112,10 +112,16 @@ namespace Dapper.Tests.Database
             {
                 var tsql = "; select 1 AS ProductId";
                 var fsql = "; select 0 AS ProductId";
-                if ( GetProvider() == Provider.Firebird )
+                switch (GetProvider())
                 {
-                    tsql += " from RDB$Database";
-                    fsql += " from RDB$Database";
+                    case Provider.Firebird:
+                        tsql += " from RDB$Database";
+                        fsql += " from RDB$Database";
+                        break;
+                    case Provider.Oracle:
+                        tsql += " from dual";
+                        fsql += " from dual";
+                        break;
                 }
 
                 Assert.True(await connection.ExistsAsync<Product>(tsql));

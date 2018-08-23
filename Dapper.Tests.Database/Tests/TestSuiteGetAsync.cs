@@ -101,9 +101,14 @@ namespace Dapper.Tests.Database
             using (var connection = GetSqlDatabase())
             {
                 var tsql = "; select 23 AS ProductId";
-                if ( GetProvider() == Provider.Firebird )
+                switch (GetProvider())
                 {
-                    tsql += " from RDB$Database";
+                    case Provider.Firebird:
+                        tsql += " from RDB$Database";
+                        break;
+                    case Provider.Oracle:
+                        tsql += " from dual";
+                        break;
                 }
                 var p = await connection.GetAsync<Product>(tsql, new { });
                 Assert.Equal(23, p.ProductID);
