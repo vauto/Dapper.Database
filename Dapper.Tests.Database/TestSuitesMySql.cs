@@ -43,19 +43,13 @@ namespace Dapper.Tests.Database
 
                 }
             }
-            catch (SocketException e)
+            catch (SocketException e) when (e.Message.Contains("No connection could be made because the target machine actively refused it"))
             {
-                if (e.Message.Contains("No connection could be made because the target machine actively refused it"))
-                    _skip = true;
-                else
-                    throw;
+                _skip = true;
             }
-            catch (MySqlException e)
+            catch (MySqlException e) when (e.Message == "Unable to connect to any of the specified MySQL hosts.")
             {
-                if (e.Message == "Unable to connect to any of the specified MySQL hosts.")
-                    _skip = true;
-                else
-                    throw;
+                _skip = true;
             }
         }
     }
