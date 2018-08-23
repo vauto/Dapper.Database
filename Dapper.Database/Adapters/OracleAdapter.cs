@@ -45,8 +45,12 @@ namespace Dapper.Database.Adapters
         /// <param name="page">the page to request</param>
         /// <param name="pageSize">the size of the page to request</param>
         /// <param name="sql">a sql statement or partial statement</param>
+        /// <param name="parameters">the dynamic parameters for the query</param>
         /// <returns>A paginated sql statement</returns>
-        public override string GetPageListQuery(TableInfo tableInfo, long page, long pageSize, string sql)
+        /// <remarks>
+        /// Oracle supports binding <c>offset</c> and <paramref name="pageSize"/> as <paramref name="parameters"/>.
+        /// </remarks>
+        public override string GetPageListQuery(TableInfo tableInfo, long page, long pageSize, string sql, DynamicParameters parameters)
         {
             var q = new SqlParser(GetListQuery(tableInfo, sql));
             var pageSkip = (page - 1) * pageSize;
@@ -58,7 +62,12 @@ namespace Dapper.Database.Adapters
                 sqlOrderBy = $"order by {EscapeColumnn(tableInfo.KeyColumns.First().ColumnName)}";
             }
 
-            return $"{q.Sql} {sqlOrderBy} offset {pageSkip} rows fetch next {pageSize} rows only";
+            // Oracle supports binding the offset and page size.
+            // Use variable names that are unlikely to be used as parameters, and that are safe to use with ODP.NET and Dapper.
+            parameters.Add("PAGE_SKIP$$", pageSkip, DbType.Int64);
+            parameters.Add("PAGE_SIZE$$", pageSize, DbType.Int64);
+
+            return $"{q.Sql} {sqlOrderBy} offset :PAGE_SKIP$$ rows fetch next :PAGE_SIZE$$ rows only";
         }
 
         /// <summary>

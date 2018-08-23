@@ -205,8 +205,9 @@ namespace Dapper.Database.Adapters
         /// <param name="page">the page to request</param>
         /// <param name="pageSize">the size of the page to request</param>
         /// <param name="sql">a sql statement or partial statement</param>
+        /// <param name="parameters">the dynamic parameters for the query</param>
         /// <returns>A paginated sql statement</returns>
-        public override string GetPageListQuery(TableInfo tableInfo, long page, long pageSize, string sql)
+        public override string GetPageListQuery(TableInfo tableInfo, long page, long pageSize, string sql, DynamicParameters parameters)
         {
             var q = new SqlParser(GetListQuery(tableInfo, sql));
             var pageSkip = (page - 1) * pageSize;
@@ -229,6 +230,7 @@ namespace Dapper.Database.Adapters
 
             var columnsOnly = $"page_inner.* FROM ({sqlOrderByRemoved}) page_inner";
 
+            // TODO: can you bind these as bind variables in Sql Server CE?
             return $"select * from (select row_number() over ({sqlOrderBy}) page_rn, {columnsOnly}) page_outer where page_rn > {pageSkip} and page_rn <= {pageTake}";
 
         }
