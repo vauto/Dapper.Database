@@ -2,13 +2,13 @@
 using System.Data;
 using System.Data.Common;
 
-#if !NETCOREAPP1_0
+#if ORACLE
 using RealOracleConnection = Oracle.ManagedDataAccess.Client.OracleConnection;
 #endif
 
 namespace Dapper.Tests.Database.OracleClient
 {
-#if !NETCOREAPP1_0
+#if ORACLE
     /// <summary>
     /// Wrapper for <see cref="RealOracleConnection"/> that creates safe <see cref="OracleCommand"/> objects.
     /// </summary>

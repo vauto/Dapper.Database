@@ -1,14 +1,14 @@
 ﻿using System;
 using System.Data;
 
-#if !NETCOREAPP1_0
+#if ORACLE
 using Oracle.ManagedDataAccess.Types;
 using RealOracleParameter = Oracle.ManagedDataAccess.Client.OracleParameter;
 #endif
 
 namespace Dapper.Tests.Database.OracleClient
 {
-#if !NETCOREAPP1_0
+#if ORACLE
     public class OracleParameter : System.Data.Common.DbParameter
     {
         internal RealOracleParameter RealParameter { get; }

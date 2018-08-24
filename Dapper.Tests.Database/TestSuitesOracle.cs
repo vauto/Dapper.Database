@@ -3,10 +3,9 @@ using System.IO;
 using System.Net.Sockets;
 using System.Text.RegularExpressions;
 using Dapper.Database;
-using Dapper.Tests.Database.Tests;
 using Xunit;
 
-#if !NETCOREAPP1_0
+#if ORACLE
 using Oracle.ManagedDataAccess.Client;
 using OracleConnection = Dapper.Tests.Database.OracleClient.OracleConnection;
 #endif
@@ -14,7 +13,7 @@ using OracleConnection = Dapper.Tests.Database.OracleClient.OracleConnection;
 namespace Dapper.Tests.Database
 {
 
-#if !NETCOREAPP1_0
+#if ORACLE
     [Trait("Provider", "Oracle")]
     public partial class OracleTestSuite : TestSuite
     {
@@ -39,12 +38,7 @@ namespace Dapper.Tests.Database
 
         static OracleTestSuite()
         {
-            // Oracle's driver has a complicated relationship with Guids.
-            // It tries to ignore them, but apparently allows them for EF queries.
-            // When it does, it uses the builtin <see cref="Guid(byte[])"/> constructor,
-            // which is little-endian.
-            // So Oracle basically treats them as little-endian when it actually does deal with them...
-            SqlMapper.AddTypeHandler(new LittleEndianGuidTypeHandler());
+            SqlMapper.AddTypeHandler(new GuidTypeHandler());
             try
             {
                 using (var connection = new OracleConnection(ConnectionString))
