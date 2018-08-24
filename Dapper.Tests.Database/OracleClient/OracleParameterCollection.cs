@@ -4,14 +4,14 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Data.Common;
 using System.Diagnostics;
-#if !NETCOREAPP1_0
+#if ORACLE
 using RealOracleParameter = Oracle.ManagedDataAccess.Client.OracleParameter;
 using RealOracleParameterCollection = Oracle.ManagedDataAccess.Client.OracleParameterCollection;
 #endif
 
 namespace Dapper.Tests.Database.OracleClient
 {
-#if !NETCOREAPP1_0
+#if ORACLE
     public class OracleParameterCollection : DbParameterCollection
     {
         private readonly RealOracleParameterCollection _realParameters;

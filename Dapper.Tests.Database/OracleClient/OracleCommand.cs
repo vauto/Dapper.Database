@@ -4,7 +4,7 @@ using System.Data.Common;
 using System.Threading;
 using System.Threading.Tasks;
 
-#if !NETCOREAPP1_0
+#if ORACLE
 using OracleTransaction = Oracle.ManagedDataAccess.Client.OracleTransaction; // not wrapping this one
 using RealOracleCommand = Oracle.ManagedDataAccess.Client.OracleCommand;
 using RealOracleConnection = Oracle.ManagedDataAccess.Client.OracleConnection;
@@ -12,7 +12,7 @@ using RealOracleConnection = Oracle.ManagedDataAccess.Client.OracleConnection;
 
 namespace Dapper.Tests.Database.OracleClient
 {
-#if !NETCOREAPP1_0
+#if ORACLE
     /// <summary>
     /// Wrapper of <see cref="RealOracleCommand"/> whose sole purpose is to massage standard Dapper SQL into Oracle SQL.
     /// </summary>
