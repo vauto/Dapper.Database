@@ -1,18 +1,15 @@
-﻿using System;
+﻿#if ORACLE
+using System;
 using System.Data;
 using System.Data.Common;
 using System.Threading;
 using System.Threading.Tasks;
-
-#if ORACLE
 using OracleTransaction = Oracle.ManagedDataAccess.Client.OracleTransaction; // not wrapping this one
 using RealOracleCommand = Oracle.ManagedDataAccess.Client.OracleCommand;
 using RealOracleConnection = Oracle.ManagedDataAccess.Client.OracleConnection;
-#endif
 
 namespace Dapper.Tests.Database.OracleClient
 {
-#if ORACLE
     /// <summary>
     /// Wrapper of <see cref="RealOracleCommand"/> whose sole purpose is to massage standard Dapper SQL into Oracle SQL.
     /// </summary>
@@ -181,5 +178,5 @@ namespace Dapper.Tests.Database.OracleClient
         public override Task<int> ExecuteNonQueryAsync(CancellationToken cancellationToken) => RealCommand.ExecuteNonQueryAsync(cancellationToken);
         protected override Task<DbDataReader> ExecuteDbDataReaderAsync(CommandBehavior behavior, CancellationToken cancellationToken) => RealCommand.ExecuteReaderAsync(behavior, cancellationToken);
     }
-#endif
 }
+#endif

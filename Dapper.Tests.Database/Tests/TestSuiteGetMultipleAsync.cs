@@ -1,19 +1,8 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Data;
-using System.Linq;
-
+﻿using System.Linq;
+using System.Threading.Tasks;
 using Dapper.Database.Extensions;
 using Xunit;
-using System.Threading.Tasks;
-
-#if NET452
-using System.Transactions;
-using System.ComponentModel.DataAnnotations;
-using System.Data.SqlServerCe;
-#endif
 using FactAttribute = Dapper.Tests.Database.SkippableFactAttribute;
-
 
 namespace Dapper.Tests.Database
 {
@@ -54,9 +43,9 @@ namespace Dapper.Tests.Database
                 {
                     using (var trans = db.GetTransaction())
                     {
-                        var dt = await db.GetMultipleAsync(@"
-                            select * from Product where Color = @Color;
-                            select * from ProductCategory where productcategoryid = @ProductCategoryId;",
+                        var dt = await db.GetMultipleAsync($@"
+                            select * from Product where Color = {P}Color;
+                            select * from ProductCategory where productcategoryid = {P}ProductCategoryId;",
                         new { Color = "Black", ProductCategoryId = 21 });
                         Assert.Equal(89, dt.Read(typeof(Product)).Count());
 

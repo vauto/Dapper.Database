@@ -1,31 +1,31 @@
-﻿using System;
+﻿#if ORACLE
+using System;
+using System.Data.Common;
 using System.IO;
 using System.Net.Sockets;
+using System.Text;
 using System.Text.RegularExpressions;
 using Dapper.Database;
-using Xunit;
-
-#if ORACLE
 using Oracle.ManagedDataAccess.Client;
+using Xunit;
 using OracleConnection = Dapper.Tests.Database.OracleClient.OracleConnection;
-#endif
 
 namespace Dapper.Tests.Database
 {
-
-#if ORACLE
     [Trait("Provider", "Oracle")]
     public partial class OracleTestSuite : TestSuite
     {
-        private const string DbName = "test";
-        public static string ConnectionString =>
+        //public static string ConnectionString => $"Data Source=(DESCRIPTION=(ADDRESS=(PROTOCOL=TCP)(HOST=Denver)(PORT=1521))(CONNECT_DATA=(SERVICE_NAME=XE)));User Id=testuser;Password=Password12!;";
+﻿        public static string ConnectionString =>
             IsAppVeyor
-                ? $"User Id=testuser;Password=Password12!;Data Source=localhost:1521/{DbName}"
+                ? $"User Id=testuser;Password=Password12!;Data Source=localhost:1521/ORCLPDB1.localdomain"
                 : $"User Id=testuser;Password=Password12!;Data Source=localhost:1521/ORCLPDB1.localdomain"; // FIXME need good service name like "test"
+
+        protected override string P => ":";
 
         public override ISqlDatabase GetSqlDatabase()
         {
-            if(_skip) throw new SkipTestException("Skipping Oracle Tests - no server.");
+            if (_skip) throw new SkipTestException("Skipping Oracle Tests - no server.");
             return new SqlDatabase(new StringConnectionService<OracleConnection>(ConnectionString));
         }
 
@@ -59,7 +59,20 @@ namespace Dapper.Tests.Database
                         if (command.StartsWith("/*SQLPLUS*/", StringComparison.OrdinalIgnoreCase))
                             continue;
 
-                        connection.Execute(command);
+                        try
+                        {
+                            connection.Execute(command);
+                        }
+                        catch (OracleException e)
+                        {
+                            var sb = new StringBuilder();
+                            sb.AppendLine(e.Message);
+                            sb.AppendLine("For command:");
+                            sb.Append(command);
+
+                            // can't throw new OracleException or DbException...
+                            throw new InvalidOperationException(sb.ToString(), e);
+                        }
                     }
 
                     connection.Execute("delete from Person");
@@ -69,7 +82,6 @@ namespace Dapper.Tests.Database
             {
                 // All ORA- errors (12500-12599) are TNS errors indicating connectivity.
                 _skip = true;
-
             }
             catch (SocketException e) when (e.Message.Contains("No connection could be made because the target machine actively refused it"))
             {
@@ -77,6 +89,5 @@ namespace Dapper.Tests.Database
             }
         }
     }
-#endif
-
 }
+#endif

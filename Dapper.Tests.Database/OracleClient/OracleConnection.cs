@@ -1,14 +1,11 @@
-﻿using System;
+﻿#if ORACLE
+using System;
 using System.Data;
 using System.Data.Common;
-
-#if ORACLE
 using RealOracleConnection = Oracle.ManagedDataAccess.Client.OracleConnection;
-#endif
 
 namespace Dapper.Tests.Database.OracleClient
 {
-#if ORACLE
     /// <summary>
     /// Wrapper for <see cref="RealOracleConnection"/> that creates safe <see cref="OracleCommand"/> objects.
     /// </summary>
@@ -63,5 +60,5 @@ namespace Dapper.Tests.Database.OracleClient
         public override string DataSource => RealConnection.DataSource;
         public override string ServerVersion => RealConnection.ServerVersion;
     }
-#endif
 }
+#endif

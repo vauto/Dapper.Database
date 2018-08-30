@@ -13,32 +13,6 @@ namespace Dapper.Database.Adapters
     public partial class OracleAdapter : SqlAdapter, ISqlAdapter
     {
         /// <summary>
-        /// Oracle-specific implementation of an Exists query.
-        /// </summary>
-        /// <param name="tableInfo">table information about the entity</param>
-        /// <param name="sql">a sql statement or partial statement</param>
-        /// <returns>A sql statement that selects true if a record matches</returns>
-        public override string ExistsQuery(TableInfo tableInfo, string sql)
-        {
-            var q = new SqlParser(sql ?? "");
-
-            if (q.Sql.StartsWith(";", StringComparison.Ordinal))
-                return q.Sql.Substring(1);
-
-            if (!q.IsSelect)
-            {
-                var wc = string.IsNullOrWhiteSpace(q.Sql) ? $"where {EscapeWhereList(tableInfo.KeyColumns)}" : q.Sql;
-
-                if (string.IsNullOrEmpty(q.FromClause))
-                    return $"select 1 from dual where exists (select 1 from { EscapeTableName(tableInfo)} {wc})";
-                else
-                    return $"select 1 from dual where exists (select 1 {wc})";
-            }
-
-            return $"select 1 from dual where exists ({q.Sql})";
-        }
-
-        /// <summary>
         /// Oracle implementation of a a paged sql statement
         /// </summary>
         /// <param name="tableInfo">table information about the entity</param>
@@ -234,6 +208,32 @@ namespace Dapper.Database.Adapters
             {
                 return await connection.ExecuteAsync(cmd.ToString(), entityToUpdate, transaction, commandTimeout) > 0;
             }
+        }
+
+        /// <summary>
+        /// Oracle-specific implementation of an Exists query.
+        /// </summary>
+        /// <param name="tableInfo">table information about the entity</param>
+        /// <param name="sql">a sql statement or partial statement</param>
+        /// <returns>A sql statement that selects true if a record matches</returns>
+        public override string ExistsQuery(TableInfo tableInfo, string sql)
+        {
+            var q = new SqlParser(sql ?? "");
+
+            if (q.Sql.StartsWith(";", StringComparison.Ordinal))
+                return q.Sql.Substring(1);
+
+            if (!q.IsSelect)
+            {
+                var wc = string.IsNullOrWhiteSpace(q.Sql) ? $"where {EscapeWhereList(tableInfo.KeyColumns)}" : q.Sql;
+
+                if (string.IsNullOrEmpty(q.FromClause))
+                    return $"select 1 from dual where exists (select 1 from { EscapeTableName(tableInfo)} {wc})";
+                else
+                    return $"select 1 from dual where exists (select 1 {wc})";
+            }
+
+            return $"select 1 from dual where exists ({q.Sql})";
         }
 
         /// <summary>

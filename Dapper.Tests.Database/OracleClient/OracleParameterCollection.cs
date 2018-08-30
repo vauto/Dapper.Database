@@ -1,17 +1,15 @@
-﻿using System;
+﻿#if ORACLE
+using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using System.Data.Common;
 using System.Diagnostics;
-#if ORACLE
 using RealOracleParameter = Oracle.ManagedDataAccess.Client.OracleParameter;
 using RealOracleParameterCollection = Oracle.ManagedDataAccess.Client.OracleParameterCollection;
-#endif
 
 namespace Dapper.Tests.Database.OracleClient
 {
-#if ORACLE
     public class OracleParameterCollection : DbParameterCollection
     {
         private readonly RealOracleParameterCollection _realParameters;
@@ -171,5 +169,6 @@ namespace Dapper.Tests.Database.OracleClient
                 Add(obj);
         }
     }
-#endif
 }
+#endif
+

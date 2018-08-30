@@ -1,16 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Data;
-using System.Linq;
-
-using Dapper.Database.Extensions;
-using Xunit;
-
-#if NET452
-using System.Transactions;
-using System.ComponentModel.DataAnnotations;
-using System.Data.SqlServerCe;
-#endif
+﻿using Xunit;
 using FactAttribute = Dapper.Tests.Database.SkippableFactAttribute;
 
 
@@ -43,7 +31,7 @@ namespace Dapper.Tests.Database
             {
                 using (var db = GetSqlDatabase())
                 {
-                    var dt = db.GetDataTable("select * from Product where Color = @Color", new { @Color = "Black" });
+                    var dt = db.GetDataTable($"select * from Product where Color = {P}Color", new { @Color = "Black" });
                     Assert.Equal(89, dt.Rows.Count);
                 }
             }
