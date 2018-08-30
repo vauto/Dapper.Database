@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Data;
 using System.Linq;
+using System.Linq.Expressions;
 using System.Text;
 using System.Threading.Tasks;
 
@@ -55,17 +56,23 @@ namespace Dapper.Database.Adapters
         /// <param name="tableInfo">table information about the entity</param>
         /// <param name="entityToInsert">Entity to insert</param>
         /// <returns>true if the entity was inserted</returns>
-        public override bool Insert(IDbConnection connection, IDbTransaction transaction, int? commandTimeout, TableInfo tableInfo, object entityToInsert)
+        public override bool Insert<T>(IDbConnection connection, IDbTransaction transaction, int? commandTimeout, TableInfo tableInfo, T entityToInsert)
         {
             var cmd = new StringBuilder(InsertQuery(tableInfo));
 
-            if (tableInfo.GeneratedColumns.Any() && tableInfo.KeyColumns.Any())
+            if (tableInfo.GeneratedColumns.Any())
             {
                 cmd.Append($" RETURNING  {EscapeColumnList(tableInfo.GeneratedColumns)} INTO {EscapeParameters(tableInfo.GeneratedColumns)}");
 
                 // Oracle does not return RETURNING values in a result set; rather, it returns them as InputOutput parameters.
                 // We need to wrap the incoming object in a DynamicParameters collection to get at the values.
+                // While it does InputOutput binding, it does _not_ set size for strings by default; we have to call parameters.Output().
                 var parameters = new DynamicParameters(entityToInsert);
+                foreach (var column in tableInfo.GeneratedColumns)
+                {
+                    parameters.Output(entityToInsert, (Expression<Func<T, object>>)column.Output);
+                }
+
                 var count = connection.Execute(cmd.ToString(), parameters, transaction, commandTimeout: commandTimeout);
 
                 if (count == 0) return false;
@@ -97,17 +104,23 @@ namespace Dapper.Database.Adapters
         /// <param name="entityToUpdate">Entity to update</param>
         /// <param name="columnsToUpdate">A list of columns to update</param>
         /// <returns>true if the entity was updated</returns>
-        public override bool Update(IDbConnection connection, IDbTransaction transaction, int? commandTimeout, TableInfo tableInfo, object entityToUpdate, IEnumerable<string> columnsToUpdate)
+        public override bool Update<T>(IDbConnection connection, IDbTransaction transaction, int? commandTimeout, TableInfo tableInfo, T entityToUpdate, IEnumerable<string> columnsToUpdate)
         {
             var cmd = new StringBuilder(UpdateQuery(tableInfo, columnsToUpdate));
 
-            if (tableInfo.GeneratedColumns.Any() && tableInfo.KeyColumns.Any())
+            if (tableInfo.GeneratedColumns.Any())
             {
                 cmd.Append($" RETURNING  {EscapeColumnList(tableInfo.GeneratedColumns)} INTO {EscapeParameters(tableInfo.GeneratedColumns)}");
 
+
                 // Oracle does not return RETURNING values in a result set; rather, it returns them as InputOutput parameters.
                 // We need to wrap the incoming object in a DynamicParameters collection to get at the values.
+                // While it does InputOutput binding, it does _not_ set size for strings by default; we have to call parameters.Output().
                 var parameters = new DynamicParameters(entityToUpdate);
+                foreach (var column in tableInfo.GeneratedColumns)
+                {
+                    parameters.Output(entityToUpdate, (Expression<Func<T, object>>)column.Output);
+                }
                 var count = connection.Execute(cmd.ToString(), parameters, transaction, commandTimeout: commandTimeout);
 
                 if (count == 0) return false;
@@ -137,17 +150,24 @@ namespace Dapper.Database.Adapters
         /// <param name="tableInfo">table information about the entity</param>
         /// <param name="entityToInsert">Entity to insert</param>
         /// <returns>true if the entity was inserted</returns>
-        public override async Task<bool> InsertAsync(IDbConnection connection, IDbTransaction transaction, int? commandTimeout, TableInfo tableInfo, object entityToInsert)
+        public override async Task<bool> InsertAsync<T>(IDbConnection connection, IDbTransaction transaction, int? commandTimeout, TableInfo tableInfo, T entityToInsert)
         {
             var cmd = new StringBuilder(InsertQuery(tableInfo));
 
-            if (tableInfo.GeneratedColumns.Any() && tableInfo.KeyColumns.Any())
+            if (tableInfo.GeneratedColumns.Any())
             {
                 cmd.Append($" RETURNING  {EscapeColumnList(tableInfo.GeneratedColumns)} INTO {EscapeParameters(tableInfo.GeneratedColumns)}");
 
                 // Oracle does not return RETURNING values in a result set; rather, it returns them as InputOutput parameters.
                 // We need to wrap the incoming object in a DynamicParameters collection to get at the values.
+                // Oracle does not return RETURNING values in a result set; rather, it returns them as InputOutput parameters.
+                // We need to wrap the incoming object in a DynamicParameters collection to get at the values.
+                // While it does InputOutput binding, it does _not_ set size for strings by default; we have to call parameters.Output().
                 var parameters = new DynamicParameters(entityToInsert);
+                foreach (var column in tableInfo.GeneratedColumns)
+                {
+                    parameters.Output(entityToInsert, (Expression<Func<T, object>>)column.Output);
+                }
                 var count = await connection.ExecuteAsync(cmd.ToString(), parameters, transaction, commandTimeout: commandTimeout);
 
                 if (count == 0) return false;
@@ -179,7 +199,7 @@ namespace Dapper.Database.Adapters
         /// <param name="entityToUpdate">Entity to update</param>
         /// <param name="columnsToUpdate">A list of columns to update</param>
         /// <returns>true if the entity was updated</returns>
-        public override async Task<bool> UpdateAsync(IDbConnection connection, IDbTransaction transaction, int? commandTimeout, TableInfo tableInfo, object entityToUpdate, IEnumerable<string> columnsToUpdate)
+        public override async Task<bool> UpdateAsync<T>(IDbConnection connection, IDbTransaction transaction, int? commandTimeout, TableInfo tableInfo, T entityToUpdate, IEnumerable<string> columnsToUpdate)
         {
             var cmd = new StringBuilder(UpdateQuery(tableInfo, columnsToUpdate));
 
@@ -189,7 +209,12 @@ namespace Dapper.Database.Adapters
 
                 // Oracle does not return RETURNING values in a result set; rather, it returns them as InputOutput parameters.
                 // We need to wrap the incoming object in a DynamicParameters collection to get at the values.
+                // While it does InputOutput binding, it does _not_ set size for strings by default; we have to call parameters.Output().
                 var parameters = new DynamicParameters(entityToUpdate);
+                foreach (var column in tableInfo.GeneratedColumns)
+                {
+                    parameters.Output(entityToUpdate, (Expression<Func<T, object>>)column.Output);
+                }
                 var count = await connection.ExecuteAsync(cmd.ToString(), parameters, transaction, commandTimeout: commandTimeout);
 
                 if (count == 0) return false;
