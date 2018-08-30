@@ -112,7 +112,6 @@ namespace Dapper.Database.Adapters
             {
                 cmd.Append($" RETURNING  {EscapeColumnList(tableInfo.GeneratedColumns)} INTO {EscapeParameters(tableInfo.GeneratedColumns)}");
 
-
                 // Oracle does not return RETURNING values in a result set; rather, it returns them as InputOutput parameters.
                 // We need to wrap the incoming object in a DynamicParameters collection to get at the values.
                 // While it does InputOutput binding, it does _not_ set size for strings by default; we have to call parameters.Output().
@@ -203,7 +202,7 @@ namespace Dapper.Database.Adapters
         {
             var cmd = new StringBuilder(UpdateQuery(tableInfo, columnsToUpdate));
 
-            if (tableInfo.GeneratedColumns.Any() && tableInfo.KeyColumns.Any())
+            if (tableInfo.GeneratedColumns.Any())
             {
                 cmd.Append($" RETURNING  {EscapeColumnList(tableInfo.GeneratedColumns)} INTO {EscapeParameters(tableInfo.GeneratedColumns)}");
 
