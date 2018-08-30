@@ -1,9 +1,8 @@
-﻿using Microsoft.Data.Sqlite;
-using System;
+﻿using System;
 using System.IO;
-using Xunit;
 using Dapper.Database;
 using FirebirdSql.Data.FirebirdClient;
+using Xunit;
 
 namespace Dapper.Tests.Database
 {
@@ -13,9 +12,14 @@ namespace Dapper.Tests.Database
     {
         public static string ConnectionString => $"DataSource=localhost;User=SYSDBA;Password=Password12!;";
 
+        protected override void CheckSkip()
+        {
+            if (_skip) throw new SkipTestException("Skipping Firebird Tests - no server.");
+        }
+
         public override ISqlDatabase GetSqlDatabase()
         {
-            if ( _skip ) throw new SkipTestException("Skipping Firebird Tests - no server.");
+            CheckSkip();
             var filename = Directory.GetCurrentDirectory() + "\\Test.Db.fdb";
             return new SqlDatabase(new StringConnectionService<FbConnection>($"Database={filename};{ConnectionString}"));
         }
@@ -29,6 +33,7 @@ namespace Dapper.Tests.Database
             Environment.SetEnvironmentVariable("NoCache", "True");
 
             var init = false;
+            ResetDapperTypes();
             SqlMapper.AddTypeHandler<Guid>(new GuidTypeHandler());
             //SqlMapper.AddTypeHandler<decimal>(new NumericTypeHandler());
 

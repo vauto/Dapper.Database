@@ -127,13 +127,12 @@
     </PostBuildEvent>
   </PropertyGroup>
 
-  <PropertyGroup Condition="'$(Configuration)|$(TargetFramework)|$(Platform)'=='Debug|net452|AnyCPU'">
-    <DefineConstants>TRACE;DEBUG;NET452;Testing</DefineConstants>
+  <PropertyGroup Condition="'$(TargetFramework)'=='net452'">
+    <DefineConstants>$(DefineConstants);SQLCE</DefineConstants>
   </PropertyGroup>
 
   <PropertyGroup Condition="'$(TargetFramework)' != 'netcoreapp1.0'">
     <DefineConstants>$(DefineConstants);ORACLE</DefineConstants>
   </PropertyGroup>
-
 
 </Project>

@@ -1,10 +1,9 @@
 ﻿using System;
 using System.IO;
-using Xunit;
-using Dapper.Database;
-using Npgsql;
 using System.Net.Sockets;
+using Dapper.Database;
 using MySql.Data.MySqlClient;
+using Xunit;
 
 namespace Dapper.Tests.Database
 {
@@ -17,12 +16,16 @@ namespace Dapper.Tests.Database
                 ? $"Server=localhost;Port=3306;User Id=root;Password=Password12!;Database={DbName};"
                 : $"Server=localhost;Port=3306;User Id=root;Password=Password12!;Database={DbName};";
 
-        public override ISqlDatabase GetSqlDatabase()
+        protected override void CheckSkip()
         {
             if (_skip) throw new SkipTestException("Skipping MySql Tests - no server.");
-            return new SqlDatabase(new StringConnectionService<MySqlConnection>(ConnectionString));
         }
 
+        public override ISqlDatabase GetSqlDatabase()
+        {
+            CheckSkip();
+            return new SqlDatabase(new StringConnectionService<MySqlConnection>(ConnectionString));
+        }
 
         public override Provider GetProvider() => Provider.MySql;
 
@@ -30,6 +33,7 @@ namespace Dapper.Tests.Database
 
         static MySqlTestSuite()
         {
+            ResetDapperTypes();
             SqlMapper.AddTypeHandler<Guid>(new GuidTypeHandler());
             try
             {

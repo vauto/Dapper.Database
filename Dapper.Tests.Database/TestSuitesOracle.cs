@@ -23,13 +23,17 @@ namespace Dapper.Tests.Database
 
         protected override string P => ":";
 
-        public override ISqlDatabase GetSqlDatabase()
+        protected override void CheckSkip()
         {
             if (_skip) throw new SkipTestException("Skipping Oracle Tests - no server.");
-            return new SqlDatabase(new StringConnectionService<OracleConnection>(ConnectionString));
         }
 
-
+        public override ISqlDatabase GetSqlDatabase()
+        {
+            CheckSkip();
+            return new SqlDatabase(new StringConnectionService<OracleConnection>(ConnectionString));
+        }
+        
         public override Provider GetProvider() => Provider.Oracle;
 
         private static readonly bool _skip;
@@ -38,7 +42,8 @@ namespace Dapper.Tests.Database
 
         static OracleTestSuite()
         {
-            SqlMapper.AddTypeHandler(new GuidTypeHandler());
+            ResetDapperTypes();
+            SqlMapper.AddTypeHandler<Guid>(new GuidTypeHandler());
             try
             {
                 using (var connection = new OracleConnection(ConnectionString))

@@ -1,9 +1,9 @@
 ﻿using System;
 using System.IO;
-using Xunit;
+using System.Net.Sockets;
 using Dapper.Database;
 using Npgsql;
-using System.Net.Sockets;
+using Xunit;
 
 namespace Dapper.Tests.Database
 {
@@ -16,12 +16,16 @@ namespace Dapper.Tests.Database
                 ? $"Server=localhost;Port=5432;User Id=postgres;Password=Password12!;Database={DbName}"
                 : $"Server=localhost;Port=5432;User Id=postgres;Password=Password12!;Database={DbName}";
 
-        public override ISqlDatabase GetSqlDatabase()
+        protected override void CheckSkip()
         {
             if (_skip) throw new SkipTestException("Skipping Postgres Tests - no server.");
-            return new SqlDatabase(new StringConnectionService<NpgsqlConnection>(ConnectionString));
         }
 
+        public override ISqlDatabase GetSqlDatabase()
+        {
+            CheckSkip();
+            return new SqlDatabase(new StringConnectionService<NpgsqlConnection>(ConnectionString));
+        }
 
         public override Provider GetProvider() => Provider.Postgres;
 
@@ -29,9 +33,9 @@ namespace Dapper.Tests.Database
 
         static PostgresTestSuite()
         {
-
             Environment.SetEnvironmentVariable("NoCache", "True");
 
+            ResetDapperTypes();
             SqlMapper.AddTypeHandler<Guid>(new GuidTypeHandler());
             try
             {
