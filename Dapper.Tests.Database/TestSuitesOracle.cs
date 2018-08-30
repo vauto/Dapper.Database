@@ -20,8 +20,8 @@ namespace Dapper.Tests.Database
         private const string DbName = "test";
         public static string ConnectionString =>
             IsAppVeyor
-                ? $"User Id=DapperContribTests;Password=Password12!;Data Source=localhost:1521/{DbName}"
-                : $"User Id=DapperContribTests;Password=Password12!;Data Source=localhost:1521/ORCLPDB1.localdomain"; // FIXME need good service name like "test"
+                ? $"User Id=testuser;Password=Password12!;Data Source=localhost:1521/{DbName}"
+                : $"User Id=testuser;Password=Password12!;Data Source=localhost:1521/ORCLPDB1.localdomain"; // FIXME need good service name like "test"
 
         public override ISqlDatabase GetSqlDatabase()
         {
