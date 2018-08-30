@@ -5,6 +5,7 @@ using System.Linq;
 using System.Linq.Expressions;
 using System.Text;
 using System.Threading.Tasks;
+using Dapper.Database.Extensions;
 
 namespace Dapper.Database.Adapters
 {
@@ -70,7 +71,7 @@ namespace Dapper.Database.Adapters
                 var parameters = new DynamicParameters(entityToInsert);
                 foreach (var column in tableInfo.GeneratedColumns)
                 {
-                    parameters.Output(entityToInsert, (Expression<Func<T, object>>)column.Output);
+                    parameters.Output(entityToInsert, column);
                 }
 
                 var count = connection.Execute(cmd.ToString(), parameters, transaction, commandTimeout: commandTimeout);
@@ -118,7 +119,7 @@ namespace Dapper.Database.Adapters
                 var parameters = new DynamicParameters(entityToUpdate);
                 foreach (var column in tableInfo.GeneratedColumns)
                 {
-                    parameters.Output(entityToUpdate, (Expression<Func<T, object>>)column.Output);
+                    parameters.Output(entityToUpdate, column);
                 }
                 var count = connection.Execute(cmd.ToString(), parameters, transaction, commandTimeout: commandTimeout);
 
@@ -165,7 +166,7 @@ namespace Dapper.Database.Adapters
                 var parameters = new DynamicParameters(entityToInsert);
                 foreach (var column in tableInfo.GeneratedColumns)
                 {
-                    parameters.Output(entityToInsert, (Expression<Func<T, object>>)column.Output);
+                    parameters.Output(entityToInsert, column);
                 }
                 var count = await connection.ExecuteAsync(cmd.ToString(), parameters, transaction, commandTimeout: commandTimeout);
 
@@ -212,7 +213,7 @@ namespace Dapper.Database.Adapters
                 var parameters = new DynamicParameters(entityToUpdate);
                 foreach (var column in tableInfo.GeneratedColumns)
                 {
-                    parameters.Output(entityToUpdate, (Expression<Func<T, object>>)column.Output);
+                    parameters.Output(entityToUpdate, column);
                 }
                 var count = await connection.ExecuteAsync(cmd.ToString(), parameters, transaction, commandTimeout: commandTimeout);
 
