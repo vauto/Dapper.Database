@@ -5,6 +5,7 @@ using Dapper.Database;
 using MySql.Data.MySqlClient;
 using Xunit;
 
+
 namespace Dapper.Tests.Database
 {
     [Trait("Provider", "MySql")]
@@ -26,6 +27,7 @@ namespace Dapper.Tests.Database
             CheckSkip();
             return new SqlDatabase(new StringConnectionService<MySqlConnection>(ConnectionString));
         }
+
 
         public override Provider GetProvider() => Provider.MySql;
 

@@ -5,8 +5,10 @@ using System.IO;
 using Dapper.Database;
 using Xunit;
 
+
 namespace Dapper.Tests.Database
 {
+
     [Trait("Provider", "SqlCE")]
     public class SqlCETestSuite : TestSuite
     {
@@ -76,5 +78,6 @@ namespace Dapper.Tests.Database
             }
         }
     }
+
 }
 #endif

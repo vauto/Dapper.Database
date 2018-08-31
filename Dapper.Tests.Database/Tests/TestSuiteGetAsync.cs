@@ -101,7 +101,7 @@ namespace Dapper.Tests.Database
             using (var connection = GetSqlDatabase())
             {
                 var tsql = "; select 23 AS ProductId";
-                switch (GetProvider())
+                switch ( GetProvider() )
                 {
                     case Provider.Firebird:
                         tsql += " from RDB$Database";

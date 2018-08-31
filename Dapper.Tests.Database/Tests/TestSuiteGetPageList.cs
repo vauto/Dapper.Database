@@ -178,40 +178,21 @@ namespace Dapper.Tests.Database
             }
         }
 
-        private string PageListOneJoinSql
-        {
-            get
-            {
-                switch (GetProvider())
-                {
-                    case Provider.Oracle:
-                        // Oracle: "size" is a reserved word and must be quoted.
-                        return $@"select  P.ProductID, P.Name, P.ProductNumber, P.Color, P.StandardCost, P.ListPrice, P.""SIZE"", 
-                            P.Weight, P.ProductModelID, P.SellStartDate, P.SellEndDate, P.DiscontinuedDate, 
-                            P.ThumbNailPhoto, P.ThumbnailPhotoFileName, P.rowguid, P.ModifiedDate, PC.ProductCategoryID, 
-                            PC.ParentProductCategoryID
-                            from Product P
-                            join ProductCategory PC on PC.ProductCategoryID = P.ProductCategoryID
-                            where Color = {P}Color";
-                    default:
-                        return $@"select  P.ProductID, P.Name, P.ProductNumber, P.Color, P.StandardCost, P.ListPrice, P.Size, 
-                            P.Weight, P.ProductModelID, P.SellStartDate, P.SellEndDate, P.DiscontinuedDate, 
-                            P.ThumbNailPhoto, P.ThumbnailPhotoFileName, P.rowguid, P.ModifiedDate, PC.ProductCategoryID, 
-                            PC.ParentProductCategoryID
-                            from Product P
-                            join ProductCategory PC on PC.ProductCategoryID = P.ProductCategoryID
-                            where Color = {P}Color";
-                }
-            }
-        }
-
         [Fact]
         [Trait("Category", "GetPageList")]
         public void GetPageListOneJoinUnmapped()
         {
             using (var db = GetSqlDatabase())
             {
-                var lst = db.GetPageList<Product, ProductCategory>(4, 10, PageListOneJoinSql, new { Color = "Black" });
+                var sizeColumn = GetProvider() == Provider.Oracle ? "\"SIZE\"" : "Size";
+                var lst = db.GetPageList<Product, ProductCategory>(4, 10,
+                    $@"select  P.ProductID, P.Name, P.ProductNumber, P.Color, P.StandardCost, P.ListPrice, P.{sizeColumn}, 
+                    P.Weight, P.ProductModelID, P.SellStartDate, P.SellEndDate, P.DiscontinuedDate, 
+                    P.ThumbNailPhoto, P.ThumbnailPhotoFileName, P.rowguid, P.ModifiedDate, PC.ProductCategoryID, 
+                    PC.ParentProductCategoryID
+                    from Product P
+                    join ProductCategory PC on PC.ProductCategoryID = P.ProductCategoryID
+                    where Color = {P}Color", new { Color = "Black" });
                 Assert.Equal(10, lst.Count());
                 var item = lst.Single(p => p.ProductID == 816);
 
@@ -229,13 +210,21 @@ namespace Dapper.Tests.Database
         {
             using (var db = GetSqlDatabase())
             {
+                var sizeColumn = GetProvider() == Provider.Oracle ? "\"SIZE\"" : "Size";
                 var lst = db.GetPageList<Product, ProductCategory, Product>(4, 10,
                     (pr, pc) =>
                     {
                         pr.ProductCategory = pc;
                         return pr;
                     },
-                    PageListOneJoinSql, new { Color = "Black" });
+
+                    $@"select  P.ProductID, P.Name, P.ProductNumber, P.Color, P.StandardCost, P.ListPrice, P.{sizeColumn}, 
+                    P.Weight, P.ProductModelID, P.SellStartDate, P.SellEndDate, P.DiscontinuedDate, 
+                    P.ThumbNailPhoto, P.ThumbnailPhotoFileName, P.rowguid, P.ModifiedDate, PC.ProductCategoryID, 
+                    PC.ParentProductCategoryID
+                    from Product P
+                    join ProductCategory PC on PC.ProductCategoryID = P.ProductCategoryID
+                    where Color = {P}Color", new { Color = "Black" });
                 Assert.Equal(10, lst.Count());
                 var item = lst.Single(p => p.ProductID == 816);
 

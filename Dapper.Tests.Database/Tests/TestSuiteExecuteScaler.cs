@@ -1,5 +1,7 @@
 ﻿using Xunit;
+
 using FactAttribute = Dapper.Tests.Database.SkippableFactAttribute;
+
 
 namespace Dapper.Tests.Database
 {
@@ -26,5 +28,6 @@ namespace Dapper.Tests.Database
                 Assert.Equal(102.29m, db.ExecuteScaler<decimal>($"select listprice from Product where productid = {P}ProductId", new { ProductId = 806 }));
             }
         }
+
     }
 }

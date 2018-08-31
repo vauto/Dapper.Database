@@ -4,6 +4,7 @@ using System.IO;
 using Dapper.Database;
 using Xunit;
 
+
 namespace Dapper.Tests.Database
 {
 
@@ -26,6 +27,7 @@ namespace Dapper.Tests.Database
             CheckSkip();
             return new SqlDatabase(new StringConnectionService<SqlConnection>(ConnectionString));
         }
+
 
         public override Provider GetProvider() => Provider.SqlServer;
 

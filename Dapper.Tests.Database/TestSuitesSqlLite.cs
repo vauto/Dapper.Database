@@ -4,6 +4,7 @@ using Dapper.Database;
 using Microsoft.Data.Sqlite;
 using Xunit;
 
+
 namespace Dapper.Tests.Database
 {
 
@@ -56,16 +57,9 @@ namespace Dapper.Tests.Database
                 }
 
             }
-            catch (SqliteException ex)
+            catch (SqliteException ex) when (ex.Message.Contains("SQLite Error 1:"))
             {
-                if (ex.Message.Contains("SQLite Error 1:"))
-                {
-                    _skip = true;
-                }
-                else
-                {
-                    throw;
-                }
+                _skip = true;
             }
 
         }

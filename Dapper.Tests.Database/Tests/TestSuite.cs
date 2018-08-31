@@ -2,6 +2,7 @@
 using System.Data;
 using Dapper.Database;
 
+
 namespace Dapper.Tests.Database
 {
     public abstract partial class TestSuite

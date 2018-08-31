@@ -72,6 +72,7 @@ namespace Dapper.Database
                 .Select(t =>
                 {
                     var columnAtt = t.GetCustomAttributes(false).SingleOrDefault(attr => attr.GetType().Name == "ColumnAttribute") as dynamic;
+                    var seqAtt = t.GetCustomAttributes(false).SingleOrDefault(a => a is SequenceAttribute) as dynamic;
 
                     var ci = new ColumnInfo
                     {
@@ -79,15 +80,17 @@ namespace Dapper.Database
                         ColumnName = columnAtt?.Name ?? t.Name,
                         PropertyName = t.Name,
                         IsKey = t.GetCustomAttributes(false).Any(a => a is KeyAttribute),
-                        IsIdentity = t.GetCustomAttributes(false).Any(a => a is DatabaseGeneratedAttribute g
-                          && g.DatabaseGeneratedOption == DatabaseGeneratedOption.Identity),
-                        IsGenerated = t.GetCustomAttributes(false).Any(a => a is DatabaseGeneratedAttribute g
-                            && g.DatabaseGeneratedOption != DatabaseGeneratedOption.None),
+                        IsIdentity = (t.GetCustomAttributes(false).Any(a => a is DatabaseGeneratedAttribute g
+                          && g.DatabaseGeneratedOption == DatabaseGeneratedOption.Identity))
+                          || seqAtt != null,
+                        IsGenerated = (t.GetCustomAttributes(false).Any(a => a is DatabaseGeneratedAttribute g
+                            && g.DatabaseGeneratedOption != DatabaseGeneratedOption.None))
+                            || seqAtt != null,
                         ExcludeOnSelect = t.GetCustomAttributes(false).Any(a => a is IgnoreSelectAttribute),
-                        SequenceName = ((t.GetCustomAttributes(false).SingleOrDefault(a => a is SequenceAttribute)) as dynamic)?.Name
+                        SequenceName = seqAtt?.Name
                     };
 
-                    ci.ExcludeOnInsert = ci.IsGenerated
+                    ci.ExcludeOnInsert = (ci.IsGenerated && seqAtt == null)
                         || t.GetCustomAttributes(false).Any(a => a is IgnoreInsertAttribute)
                         || t.GetCustomAttributes(false).Any(a => a is ReadOnlyAttribute);
 
@@ -195,6 +198,12 @@ namespace Dapper.Database
         /// </summary>
         /// <returns></returns>
         public IEnumerable<PropertyInfo> PropertyList =>_propertyList.Value;
+
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <returns></returns>
+        public bool HasSequenceName => ColumnInfos.Any(ci => !string.IsNullOrWhiteSpace(ci.SequenceName));
 
     }
 

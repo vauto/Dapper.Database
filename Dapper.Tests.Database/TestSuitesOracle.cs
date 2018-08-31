@@ -8,6 +8,7 @@ using System.Text.RegularExpressions;
 using Dapper.Database;
 using Oracle.ManagedDataAccess.Client;
 using Xunit;
+
 using OracleConnection = Dapper.Tests.Database.OracleClient.OracleConnection;
 
 namespace Dapper.Tests.Database
@@ -34,6 +35,7 @@ namespace Dapper.Tests.Database
             return new SqlDatabase(new StringConnectionService<OracleConnection>(ConnectionString));
         }
 
+
         public override Provider GetProvider() => Provider.Oracle;
 
         private static readonly bool _skip;
@@ -46,7 +48,7 @@ namespace Dapper.Tests.Database
             SqlMapper.AddTypeHandler<Guid>(new GuidTypeHandler());
             try
             {
-                using (var connection = new OracleConnection(ConnectionString))
+                using ( var connection = new OracleConnection(ConnectionString) )
                 {
                     connection.Open();
 
@@ -79,16 +81,19 @@ namespace Dapper.Tests.Database
                             throw new InvalidOperationException(sb.ToString(), e);
                         }
                     }
-
                     connection.Execute("delete from Person");
+
                 }
             }
-            catch (OracleException e) when (e.Message.StartsWith("ORA-125", StringComparison.OrdinalIgnoreCase))
+            catch (OracleException e)
             {
                 // All ORA- errors (12500-12599) are TNS errors indicating connectivity.
-                _skip = true;
+                _skip = e.Message.StartsWith("ORA-125", StringComparison.OrdinalIgnoreCase)
+                    || e.Message.Contains("No connection could be made because the target machine actively refused it")
+                    || e.Message.Contains("Unable to resolve connect hostname")
+                    ;
             }
-            catch (SocketException e) when (e.Message.Contains("No connection could be made because the target machine actively refused it"))
+            catch (SocketException e) when ( e.Message.Contains("No connection could be made because the target machine actively refused it") )
             {
                 _skip = true;
             }

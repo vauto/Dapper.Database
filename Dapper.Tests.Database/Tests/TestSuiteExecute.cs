@@ -1,6 +1,7 @@
 ﻿using Xunit;
 using FactAttribute = Dapper.Tests.Database.SkippableFactAttribute;
 
+
 namespace Dapper.Tests.Database
 {
     public abstract partial class TestSuite

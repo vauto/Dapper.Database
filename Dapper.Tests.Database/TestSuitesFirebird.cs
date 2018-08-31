@@ -4,6 +4,7 @@ using Dapper.Database;
 using FirebirdSql.Data.FirebirdClient;
 using Xunit;
 
+
 namespace Dapper.Tests.Database
 {
 
@@ -37,17 +38,17 @@ namespace Dapper.Tests.Database
             SqlMapper.AddTypeHandler<Guid>(new GuidTypeHandler());
             //SqlMapper.AddTypeHandler<decimal>(new NumericTypeHandler());
 
-            //if (File.Exists(FileName))
+            var filename = Directory.GetCurrentDirectory() + "\\Test.Db.fdb";
+
+            //if (File.Exists(filename))
             //{
-            //    File.Delete(FileName);
+            //    File.Delete(filename);
             //}
 
             var commandText = string.Empty;
 
             try
             {
-                var filename = Directory.GetCurrentDirectory() + "\\Test.Db.sfdb";
-
                 using ( var connection = new FbConnection($"Database={filename};{ConnectionString}") )
                 {
                     connection.Open();
@@ -75,16 +76,9 @@ namespace Dapper.Tests.Database
                 }
 
             }
-            catch ( FbException ex )
+            catch ( FbException ex ) when ( ex.Message.Contains("Unable to complete network request") )
             {
-                if ( ex.Message.Contains("Unable to complete network request") )
-                {
-                    _skip = true;
-                }
-                else
-                {
-                    throw;
-                }
+                _skip = true;
             }
 
         }

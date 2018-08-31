@@ -1,6 +1,8 @@
 ﻿using System.Threading.Tasks;
 using Xunit;
+
 using FactAttribute = Dapper.Tests.Database.SkippableFactAttribute;
+
 
 namespace Dapper.Tests.Database
 {
@@ -66,5 +68,7 @@ namespace Dapper.Tests.Database
                 Assert.Equal(89, await connection.CountAsync<Product>($";select count(*) from Product where Color = {P}Color", new { Color = "Black" }));
             }
         }
+
+
     }
 }

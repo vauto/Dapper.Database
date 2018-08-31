@@ -57,7 +57,7 @@ namespace Dapper.Database.Adapters
         /// <param name="tableInfo">table information about the entity</param>
         /// <param name="entityToInsert">Entity to insert</param>
         /// <returns>true if the entity was inserted</returns>
-        public override bool Insert<T>(IDbConnection connection, IDbTransaction transaction, int? commandTimeout, TableInfo tableInfo, T entityToInsert)
+        public override bool Insert<T>( IDbConnection connection, IDbTransaction transaction, int? commandTimeout, TableInfo tableInfo, T entityToInsert )
         {
             var cmd = new StringBuilder(InsertQuery(tableInfo));
 
@@ -67,9 +67,9 @@ namespace Dapper.Database.Adapters
 
                 // Oracle does not return RETURNING values in a result set; rather, it returns them as InputOutput parameters.
                 // We need to wrap the incoming object in a DynamicParameters collection to get at the values.
-                // While it does InputOutput binding, it does _not_ set size for strings by default; we have to call parameters.Output().
+                // While it does InputOutput binding, it does _not_ set size for strings by default; we have to call parameters.Output() to do that.
                 var parameters = new DynamicParameters(entityToInsert);
-                foreach (var column in tableInfo.GeneratedColumns)
+                foreach ( var column in tableInfo.GeneratedColumns )
                 {
                     parameters.Output(entityToInsert, column);
                 }
@@ -78,7 +78,7 @@ namespace Dapper.Database.Adapters
 
                 if (count == 0) return false;
 
-                foreach (var column in tableInfo.GeneratedColumns)
+                foreach ( var column in tableInfo.GeneratedColumns )
                 {
                     var property = column.Property;
                     var paramName = parameters.ParameterNames.Single(p => column.ColumnName.Equals(p, StringComparison.OrdinalIgnoreCase));
@@ -105,11 +105,11 @@ namespace Dapper.Database.Adapters
         /// <param name="entityToUpdate">Entity to update</param>
         /// <param name="columnsToUpdate">A list of columns to update</param>
         /// <returns>true if the entity was updated</returns>
-        public override bool Update<T>(IDbConnection connection, IDbTransaction transaction, int? commandTimeout, TableInfo tableInfo, T entityToUpdate, IEnumerable<string> columnsToUpdate)
+        public override bool Update<T>( IDbConnection connection, IDbTransaction transaction, int? commandTimeout, TableInfo tableInfo, T entityToUpdate, IEnumerable<string> columnsToUpdate )
         {
             var cmd = new StringBuilder(UpdateQuery(tableInfo, columnsToUpdate));
 
-            if (tableInfo.GeneratedColumns.Any())
+            if ( tableInfo.GeneratedColumns.Any() )
             {
                 cmd.Append($" RETURNING  {EscapeColumnList(tableInfo.GeneratedColumns)} INTO {EscapeParameters(tableInfo.GeneratedColumns)}");
 
@@ -117,15 +117,15 @@ namespace Dapper.Database.Adapters
                 // We need to wrap the incoming object in a DynamicParameters collection to get at the values.
                 // While it does InputOutput binding, it does _not_ set size for strings by default; we have to call parameters.Output().
                 var parameters = new DynamicParameters(entityToUpdate);
-                foreach (var column in tableInfo.GeneratedColumns)
+                foreach ( var column in tableInfo.GeneratedColumns )
                 {
                     parameters.Output(entityToUpdate, column);
                 }
                 var count = connection.Execute(cmd.ToString(), parameters, transaction, commandTimeout: commandTimeout);
 
-                if (count == 0) return false;
+                if ( count == 0 ) return false;
 
-                foreach (var column in tableInfo.GeneratedColumns)
+                foreach ( var column in tableInfo.GeneratedColumns )
                 {
                     var property = column.Property;
                     var paramName = parameters.ParameterNames.Single(p => column.ColumnName.Equals(p, StringComparison.OrdinalIgnoreCase));
@@ -150,11 +150,11 @@ namespace Dapper.Database.Adapters
         /// <param name="tableInfo">table information about the entity</param>
         /// <param name="entityToInsert">Entity to insert</param>
         /// <returns>true if the entity was inserted</returns>
-        public override async Task<bool> InsertAsync<T>(IDbConnection connection, IDbTransaction transaction, int? commandTimeout, TableInfo tableInfo, T entityToInsert)
+        public override async Task<bool> InsertAsync<T>( IDbConnection connection, IDbTransaction transaction, int? commandTimeout, TableInfo tableInfo, T entityToInsert )
         {
             var cmd = new StringBuilder(InsertQuery(tableInfo));
 
-            if (tableInfo.GeneratedColumns.Any())
+            if ( tableInfo.GeneratedColumns.Any() )
             {
                 cmd.Append($" RETURNING  {EscapeColumnList(tableInfo.GeneratedColumns)} INTO {EscapeParameters(tableInfo.GeneratedColumns)}");
 
@@ -164,15 +164,15 @@ namespace Dapper.Database.Adapters
                 // We need to wrap the incoming object in a DynamicParameters collection to get at the values.
                 // While it does InputOutput binding, it does _not_ set size for strings by default; we have to call parameters.Output().
                 var parameters = new DynamicParameters(entityToInsert);
-                foreach (var column in tableInfo.GeneratedColumns)
+                foreach ( var column in tableInfo.GeneratedColumns )
                 {
                     parameters.Output(entityToInsert, column);
                 }
                 var count = await connection.ExecuteAsync(cmd.ToString(), parameters, transaction, commandTimeout: commandTimeout);
 
-                if (count == 0) return false;
+                if ( count == 0 ) return false;
 
-                foreach (var column in tableInfo.GeneratedColumns)
+                foreach ( var column in tableInfo.GeneratedColumns )
                 {
                     var property = column.Property;
                     var paramName = parameters.ParameterNames.Single(p => column.ColumnName.Equals(p, StringComparison.OrdinalIgnoreCase));
@@ -199,7 +199,7 @@ namespace Dapper.Database.Adapters
         /// <param name="entityToUpdate">Entity to update</param>
         /// <param name="columnsToUpdate">A list of columns to update</param>
         /// <returns>true if the entity was updated</returns>
-        public override async Task<bool> UpdateAsync<T>(IDbConnection connection, IDbTransaction transaction, int? commandTimeout, TableInfo tableInfo, T entityToUpdate, IEnumerable<string> columnsToUpdate)
+        public override async Task<bool> UpdateAsync<T>( IDbConnection connection, IDbTransaction transaction, int? commandTimeout, TableInfo tableInfo, T entityToUpdate, IEnumerable<string> columnsToUpdate )
         {
             var cmd = new StringBuilder(UpdateQuery(tableInfo, columnsToUpdate));
 
@@ -211,15 +211,15 @@ namespace Dapper.Database.Adapters
                 // We need to wrap the incoming object in a DynamicParameters collection to get at the values.
                 // While it does InputOutput binding, it does _not_ set size for strings by default; we have to call parameters.Output().
                 var parameters = new DynamicParameters(entityToUpdate);
-                foreach (var column in tableInfo.GeneratedColumns)
+                foreach ( var column in tableInfo.GeneratedColumns )
                 {
                     parameters.Output(entityToUpdate, column);
                 }
                 var count = await connection.ExecuteAsync(cmd.ToString(), parameters, transaction, commandTimeout: commandTimeout);
 
-                if (count == 0) return false;
+                if ( count == 0 ) return false;
 
-                foreach (var column in tableInfo.GeneratedColumns)
+                foreach ( var column in tableInfo.GeneratedColumns )
                 {
                     var property = column.Property;
                     var paramName = parameters.ParameterNames.Single(p => column.ColumnName.Equals(p, StringComparison.OrdinalIgnoreCase));
