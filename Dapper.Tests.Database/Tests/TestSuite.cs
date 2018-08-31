@@ -11,6 +11,7 @@ namespace Dapper.Tests.Database
         public abstract Provider GetProvider();
 
         public abstract ISqlDatabase GetSqlDatabase();
+
         protected abstract void CheckSkip();
 
         protected virtual string P => "@";

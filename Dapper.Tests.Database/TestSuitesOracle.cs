@@ -33,7 +33,7 @@ namespace Dapper.Tests.Database
             CheckSkip();
             return new SqlDatabase(new StringConnectionService<OracleConnection>(ConnectionString));
         }
-        
+
         public override Provider GetProvider() => Provider.Oracle;
 
         private static readonly bool _skip;
