@@ -7735,6 +7735,7 @@ CREATE TABLE SalesOrderDetail(
 	ProductID integer NOT NULL,
 	UnitPrice number(14,4) NOT NULL,
 	UnitPriceDiscount number(14,4) NOT NULL,
+	LineTotal GENERATED ALWAYS AS (UnitPrice * (1.0 - UnitPriceDiscount) * OrderQty),
 	rowguid raw(16) NOT NULL,
 	ModifiedDate timestamp NOT NULL
 )
@@ -8835,6 +8836,7 @@ CREATE TABLE SalesOrderHeader(
 	ShipDate timestamp,
 	Status smallint NOT NULL,
 	OnlineOrderFlag char(1) NOT NULL,
+	SalesOrderNumber GENERATED ALWAYS AS ('SO' || SalesOrderID), 
 	PurchaseOrderNumber varchar2(25),
 	AccountNumber varchar2(15),
 	CustomerID integer NOT NULL,
@@ -8845,6 +8847,7 @@ CREATE TABLE SalesOrderHeader(
 	SubTotal number(14,4) NOT NULL,
 	TaxAmt number(14,4) NOT NULL,
 	Freight number(14,4) NOT NULL,
+	TotalDue GENERATED ALWAYS AS (SubTotal+TaxAmt+Freight),
 	"COMMENT" varchar2(4000),
 	rowguid raw(16) NOT NULL,
 	ModifiedDate timestamp NOT NULL
