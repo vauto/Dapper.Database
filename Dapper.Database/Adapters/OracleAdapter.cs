@@ -266,7 +266,7 @@ namespace Dapper.Database.Adapters
         /// </summary>
         /// <param name="tableInfo"></param>
         /// <returns></returns>
-        public override string EscapeTableName(TableInfo tableInfo) =>
+        public override string EscapeTableName( TableInfo tableInfo ) =>
             (!string.IsNullOrEmpty(tableInfo.SchemaName) ? EscapeTableName(tableInfo.SchemaName) + "." : null) + EscapeTableName(tableInfo.TableName);
 
         /// <summary>
