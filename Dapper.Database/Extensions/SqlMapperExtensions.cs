@@ -65,7 +65,8 @@ namespace Dapper.Database.Extensions
                 ["npgsqlconnection"] = new PostgresAdapter(),
                 ["mysqlconnection"] = new MySqlAdapter(),
                 ["fbconnection"] = new FirebirdAdapter(),
-                ["oracleconnection"] = new OracleAdapter(),
+                ["oracleconnection"] = new OracleAdapter()
+
             };
 
 

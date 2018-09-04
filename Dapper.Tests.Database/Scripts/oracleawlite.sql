@@ -4258,7 +4258,7 @@ END;
 
 CREATE TABLE ProductDescription(
 	ProductDescriptionID int primary key,
-	Description varchar2(400 char) NOT NULL,
+	Description varchar2(800 char) NOT NULL,
 	rowguid raw(16) NOT NULL,
 	ModifiedDate timestamp NOT NULL
 )

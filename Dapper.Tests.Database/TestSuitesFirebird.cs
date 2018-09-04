@@ -33,12 +33,12 @@ namespace Dapper.Tests.Database
         {
             Environment.SetEnvironmentVariable("NoCache", "True");
 
-            var init = false;
             ResetDapperTypes();
             SqlMapper.AddTypeHandler<Guid>(new GuidTypeHandler());
-            //SqlMapper.AddTypeHandler<decimal>(new NumericTypeHandler());
 
             var filename = Directory.GetCurrentDirectory() + "\\Test.Db.fdb";
+
+            var init = false;
 
             //if (File.Exists(filename))
             //{
@@ -49,20 +49,20 @@ namespace Dapper.Tests.Database
 
             try
             {
-                using ( var connection = new FbConnection($"Database={filename};{ConnectionString}") )
+                using (var connection = new FbConnection($"Database={filename};{ConnectionString}"))
                 {
                     connection.Open();
 
-                    if ( init )
+                    if (init)
                     {
                         var file = File.OpenText(".\\Scripts\\firebirdawlite.sql");
                         var line = string.Empty;
 
-                        while ( (line = file.ReadLine()) != null )
+                        while ((line = file.ReadLine()) != null)
                         {
-                            if ( line.Equals("GO", StringComparison.OrdinalIgnoreCase) )
+                            if (line.Equals("GO", StringComparison.OrdinalIgnoreCase))
                             {
-                                if ( !string.IsNullOrEmpty(commandText) )
+                                if (!string.IsNullOrEmpty(commandText))
                                     connection.Execute(commandText);
                                 commandText = string.Empty;
                             }
@@ -76,7 +76,7 @@ namespace Dapper.Tests.Database
                 }
 
             }
-            catch ( FbException ex ) when ( ex.Message.Contains("Unable to complete network request") )
+            catch (FbException ex) when (ex.Message.Contains("Unable to complete network request"))
             {
                 _skip = true;
             }
