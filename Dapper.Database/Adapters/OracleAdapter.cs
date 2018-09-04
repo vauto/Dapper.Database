@@ -2,7 +2,6 @@
 using System.Collections.Generic;
 using System.Data;
 using System.Linq;
-using System.Linq.Expressions;
 using System.Text;
 using System.Threading.Tasks;
 using Dapper.Database.Extensions;
@@ -14,39 +13,6 @@ namespace Dapper.Database.Adapters
     /// </summary>
     public partial class OracleAdapter : SqlAdapter, ISqlAdapter
     {
-        /// <summary>
-        /// Oracle implementation of a a paged sql statement
-        /// </summary>
-        /// <param name="tableInfo">table information about the entity</param>
-        /// <param name="page">the page to request</param>
-        /// <param name="pageSize">the size of the page to request</param>
-        /// <param name="sql">a sql statement or partial statement</param>
-        /// <param name="parameters">the dynamic parameters for the query</param>
-        /// <returns>A paginated sql statement</returns>
-        /// <remarks>
-        /// Oracle supports binding <c>offset</c> and <paramref name="pageSize"/> as <paramref name="parameters"/>.
-        /// </remarks>
-        public override string GetPageListQuery(TableInfo tableInfo, long page, long pageSize, string sql, DynamicParameters parameters)
-        {
-            var q = new SqlParser(GetListQuery(tableInfo, sql));
-            var pageSkip = (page - 1) * pageSize;
-
-            var sqlOrderBy = string.Empty;
-
-            if (string.IsNullOrEmpty(q.OrderByClause) && tableInfo.KeyColumns.Any())
-            {
-                sqlOrderBy = $"order by {EscapeColumnn(tableInfo.KeyColumns.First().ColumnName)}";
-            }
-
-            // Oracle supports binding the offset and page size.
-            // Use variable names that are unlikely to be used as parameters, and that are safe to use with ODP.NET and Dapper.
-            // NOTE: this explicitly won't work with Oracle.ManagedDataAccess 12.1.x, only 12.2 and later.
-            // It works with all versions of Oracle.ManagedDataAccess.Core, however...
-            parameters.Add("PAGE_SKIP$$", pageSkip, DbType.Int64);
-            parameters.Add("PAGE_SIZE$$", pageSize, DbType.Int64);
-
-            return $"{q.Sql} {sqlOrderBy} offset :PAGE_SKIP$$ rows fetch next :PAGE_SIZE$$ rows only";
-        }
 
         /// <summary>
         /// Inserts an entity into table "Ts"
@@ -63,7 +29,7 @@ namespace Dapper.Database.Adapters
 
             if (tableInfo.GeneratedColumns.Any())
             {
-                cmd.Append($" RETURNING  {EscapeColumnList(tableInfo.GeneratedColumns)} INTO {EscapeParameters(tableInfo.GeneratedColumns)}");
+                cmd.Append($" RETURNING {EscapeColumnList(tableInfo.GeneratedColumns)} into {EscapeReturnParameters(tableInfo.GeneratedColumns)}");
 
                 // Oracle does not return RETURNING values in a result set; rather, it returns them as InputOutput parameters.
                 // We need to wrap the incoming object in a DynamicParameters collection to get at the values.
@@ -81,7 +47,7 @@ namespace Dapper.Database.Adapters
                 foreach (var column in tableInfo.GeneratedColumns)
                 {
                     var property = column.Property;
-                    var paramName = parameters.ParameterNames.Single(p => column.ColumnName.Equals(p, StringComparison.OrdinalIgnoreCase));
+                    var paramName = parameters.ParameterNames.Single(p => column.PropertyName.Equals(p, StringComparison.OrdinalIgnoreCase));
 
                     property.SetValue(entityToInsert, Convert.ChangeType(parameters.Get<object>(paramName), property.PropertyType), null);
                 }
@@ -111,7 +77,7 @@ namespace Dapper.Database.Adapters
 
             if (tableInfo.GeneratedColumns.Any())
             {
-                cmd.Append($" RETURNING  {EscapeColumnList(tableInfo.GeneratedColumns)} INTO {EscapeParameters(tableInfo.GeneratedColumns)}");
+                cmd.Append($" RETURNING {EscapeColumnList(tableInfo.GeneratedColumns)} into {EscapeReturnParameters(tableInfo.GeneratedColumns)}");
 
                 // Oracle does not return RETURNING values in a result set; rather, it returns them as InputOutput parameters.
                 // We need to wrap the incoming object in a DynamicParameters collection to get at the values.
@@ -128,7 +94,7 @@ namespace Dapper.Database.Adapters
                 foreach (var column in tableInfo.GeneratedColumns)
                 {
                     var property = column.Property;
-                    var paramName = parameters.ParameterNames.Single(p => column.ColumnName.Equals(p, StringComparison.OrdinalIgnoreCase));
+                    var paramName = parameters.ParameterNames.Single(p => column.PropertyName.Equals(p, StringComparison.OrdinalIgnoreCase));
 
                     property.SetValue(entityToUpdate, Convert.ChangeType(parameters.Get<object>(paramName), property.PropertyType), null);
                 }
@@ -156,7 +122,7 @@ namespace Dapper.Database.Adapters
 
             if (tableInfo.GeneratedColumns.Any())
             {
-                cmd.Append($" RETURNING  {EscapeColumnList(tableInfo.GeneratedColumns)} INTO {EscapeParameters(tableInfo.GeneratedColumns)}");
+                cmd.Append($" RETURNING {EscapeColumnList(tableInfo.GeneratedColumns)} into {EscapeReturnParameters(tableInfo.GeneratedColumns)}");
 
                 // Oracle does not return RETURNING values in a result set; rather, it returns them as InputOutput parameters.
                 // We need to wrap the incoming object in a DynamicParameters collection to get at the values.
@@ -173,7 +139,7 @@ namespace Dapper.Database.Adapters
                 foreach (var column in tableInfo.GeneratedColumns)
                 {
                     var property = column.Property;
-                    var paramName = parameters.ParameterNames.Single(p => column.ColumnName.Equals(p, StringComparison.OrdinalIgnoreCase));
+                    var paramName = parameters.ParameterNames.Single(p => column.PropertyName.Equals(p, StringComparison.OrdinalIgnoreCase));
 
                     property.SetValue(entityToInsert, Convert.ChangeType(parameters.Get<object>(paramName), property.PropertyType), null);
                 }
@@ -203,7 +169,7 @@ namespace Dapper.Database.Adapters
 
             if (tableInfo.GeneratedColumns.Any())
             {
-                cmd.Append($" RETURNING  {EscapeColumnList(tableInfo.GeneratedColumns)} INTO {EscapeParameters(tableInfo.GeneratedColumns)}");
+                cmd.Append($" RETURNING {EscapeColumnList(tableInfo.GeneratedColumns)} into {EscapeReturnParameters(tableInfo.GeneratedColumns)}");
 
                 // Oracle does not return RETURNING values in a result set; rather, it returns them as InputOutput parameters.
                 // We need to wrap the incoming object in a DynamicParameters collection to get at the values.
@@ -220,7 +186,7 @@ namespace Dapper.Database.Adapters
                 foreach (var column in tableInfo.GeneratedColumns)
                 {
                     var property = column.Property;
-                    var paramName = parameters.ParameterNames.Single(p => column.ColumnName.Equals(p, StringComparison.OrdinalIgnoreCase));
+                    var paramName = parameters.ParameterNames.Single(p => column.PropertyName.Equals(p, StringComparison.OrdinalIgnoreCase));
 
                     property.SetValue(entityToUpdate, Convert.ChangeType(parameters.Get<object>(paramName), property.PropertyType), null);
                 }
@@ -258,6 +224,80 @@ namespace Dapper.Database.Adapters
 
             return $"select 1 from dual where exists ({q.Sql})";
         }
+
+        /// <summary>
+        /// Constructs a paged sql statement
+        /// </summary>
+        /// <param name="tableInfo">table information about the entity</param>
+        /// <param name="page">the page to request</param>
+        /// <param name="pageSize">the size of the page to request</param>
+        /// <param name="sql">a sql statement or partial statement</param>
+        /// <param name="parameters">the dynamic parameters for the query</param>
+        /// <returns>A paginated sql statement</returns>
+        /// <remarks>
+        /// Oracle supports binding <c>offset</c> and <paramref name="pageSize"/> as <paramref name="parameters"/>.
+        /// </remarks>
+        public override string GetPageListQuery(TableInfo tableInfo, long page, long pageSize, string sql, DynamicParameters parameters)
+        {
+#if ORACLE11G
+            var q = new SqlParser(GetListQuery(tableInfo, sql));
+            var pageSkip = (page - 1) * pageSize;
+            var pageTake = pageSkip + pageSize;
+            var sqlOrderBy = "order by (select null)";
+            var sqlOrderByRemoved = q.Sql;
+
+            if (string.IsNullOrEmpty(q.OrderByClause))
+            {
+                if (tableInfo.KeyColumns.Any())
+                {
+                    sqlOrderBy = $"order by {EscapeColumnn(tableInfo.KeyColumns.First().PropertyName)}";
+                }
+            }
+            else
+            {
+                sqlOrderBy = q.OrderByClause;
+                sqlOrderByRemoved = sqlOrderByRemoved.Replace(q.OrderByClause, "");
+            }
+
+            var columnsOnly = $"page_inner.* FROM ({sqlOrderByRemoved}) page_inner";
+
+            return $"select * from (select row_number() over ({sqlOrderBy}) page_rn, {columnsOnly}) page_outer where page_rn > {pageSkip} and page_rn <= {pageTake}";
+#else
+            var q = new SqlParser(GetListQuery(tableInfo, sql));
+            var pageSkip = (page - 1) * pageSize;
+
+            var sqlOrderBy = string.Empty;
+
+            if (string.IsNullOrEmpty(q.OrderByClause) && tableInfo.KeyColumns.Any())
+            {
+                sqlOrderBy = $"order by {EscapeColumnn(tableInfo.KeyColumns.First().PropertyName)}";
+            }
+
+            // Oracle supports binding the offset and page size.
+            // Use variable names that are unlikely to be used as parameters, and that are safe to use with ODP.NET and Dapper.
+            // NOTE: this explicitly won't work with Oracle.ManagedDataAccess 12.1.x, only 12.2 and later.
+            // It works with all versions of Oracle.ManagedDataAccess.Core, however...
+            parameters.Add("PAGE_SKIP$$", pageSkip, DbType.Int64);
+            parameters.Add("PAGE_SIZE$$", pageSize, DbType.Int64);
+
+            return $"{q.Sql} {sqlOrderBy} offset :PAGE_SKIP$$ rows fetch next :PAGE_SIZE$$ rows only";
+#endif
+
+        }
+
+        /// <summary>
+        /// Returns the format for parameters
+        /// </summary>
+        /// <param name="columns"></param>
+        /// <returns></returns>
+        public override string EscapeParameters(IEnumerable<ColumnInfo> columns) => string.Join(", ", columns.Select(ci => string.IsNullOrWhiteSpace(ci.SequenceName) ? EscapeParameter(ci.PropertyName) : ci.SequenceName + ".nextval"));
+
+        /// <summary>
+        /// Returns the format for parameters
+        /// </summary>
+        /// <param name="columns"></param>
+        /// <returns></returns>
+        public string EscapeReturnParameters(IEnumerable<ColumnInfo> columns) => string.Join(", ", columns.Select(ci => EscapeParameter(ci.PropertyName)));
 
         /// <summary>
         /// Applies a schema name is one is specified
