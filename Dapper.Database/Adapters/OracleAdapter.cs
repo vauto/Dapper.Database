@@ -223,12 +223,13 @@ namespace Dapper.Database.Adapters
                 var wc = string.IsNullOrWhiteSpace(q.Sql) ? $"where {EscapeWhereList(tableInfo.KeyColumns)}" : q.Sql;
 
                 if (string.IsNullOrEmpty(q.FromClause))
-                    return $"select 1 from dual where exists (select 1 from { EscapeTableName(tableInfo)} {wc})";
+                    return $"select case when exists (select * from {EscapeTableName(tableInfo)} {wc}) then 1 else 0 end as rec_exists from dual";
                 else
-                    return $"select 1 from dual where exists (select 1 {wc})";
+                    return $"select case when exists (select * {wc}) then 1 else 0 end as rec_exists from dual";
             }
 
-            return $"select 1 from dual where exists ({q.Sql})";
+            return $"select case when exists ({q.Sql}) then 1 else 0 end as rec_exists from dual";
+
         }
 
         /// <summary>
@@ -241,7 +242,7 @@ namespace Dapper.Database.Adapters
         /// <param name="parameters">the dynamic parameters for the query</param>
         /// <returns>A paginated sql statement</returns>
         /// <remarks>
-        /// Oracle supports binding <c>offset</c> and <paramref name="pageSize"/> as <paramref name="parameters"/>.
+        /// Oracle supports binding the pagination values as <paramref name="parameters"/>.
         /// </remarks>
         public override string GetPageListQuery(TableInfo tableInfo, long page, long pageSize, string sql, DynamicParameters parameters)
         {
