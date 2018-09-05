@@ -12,20 +12,19 @@ namespace Dapper.Tests.Database
             {
                 case string s:
                     return new Guid(s);
-                case byte[] b:
-                    switch (b.Length)
-                    {
-                        case 16:
-                            return new Guid(b);
-                        case 36:
-                            // It's probably a string stored as binary.
-                            // Because UTF-8, Latin1, etc. all use ASCII as a base, and only ASCII characters are involved,
-                            // convert it from ASCII.
-                            return new Guid(Encoding.ASCII.GetString(b));
-                        default:
-                            // ??
-                            throw new ArgumentException($"Cannot parse byte array of length {b.Length} as a Guid.", nameof(value));
-                    }
+                case Guid g:
+                    return g;
+                case byte[] b when b.Length == 16:
+                    return new Guid(b);
+                case byte[] b when b.Length == 17:
+                    // Hack for Oracle to distinguish how to parse Guids
+                    // by setting the db type to raw(17)
+                    return new Guid(b.Skip(1).ToArray());
+                case byte[] b when b.Length == 36:
+                    // It's probably a string stored as binary.
+                    // Because UTF-8, Latin1, etc. all use ASCII as a base, and only ASCII characters are involved,
+                    // convert it from ASCII.
+                    return new Guid(Encoding.ASCII.GetString(b));
                 default:
                     return (Guid)value;
             }
