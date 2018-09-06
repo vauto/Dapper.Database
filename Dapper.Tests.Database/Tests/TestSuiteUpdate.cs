@@ -187,5 +187,26 @@ namespace Dapper.Tests.Database
                 Assert.Equal("Smith", gp.LastName);
             }
         }
+
+        [Fact]
+        [Trait("Category", "Update")]
+        public void UpdateOptimisticConcurrency()
+        {
+            using (var db = GetSqlDatabase())
+            {
+                var p = new PersonUniqueIdentifierWithVersionDateTime { GuidId = Guid.NewGuid(), FirstName = "Alice", LastName = "Jones" };
+                Assert.True(db.Insert(p));
+
+                p.FirstName = "Greg";
+                p.LastName = "Smith";
+                Assert.True(db.Update(p, new string[] { "LastName" }));
+
+                var gp = db.Get<PersonUniqueIdentifierWithVersionDateTime>(p.GuidId);
+
+                Assert.Equal(p.GuidId, gp.GuidId);
+                Assert.Equal("Alice", gp.FirstName);
+                Assert.Equal("Smith", gp.LastName);
+            }
+        }
     }
 }

@@ -24,6 +24,7 @@ namespace Dapper.Database
     {
 
         private readonly Lazy<IEnumerable<ColumnInfo>> _insertColumns;
+        private readonly Lazy<ColumnInfo> _versionColumn;
         private readonly Lazy<IEnumerable<ColumnInfo>> _updateColumns;
         private readonly Lazy<IEnumerable<ColumnInfo>> _selectColumns;
         private readonly Lazy<IEnumerable<ColumnInfo>> _keyColumns;
@@ -68,47 +69,8 @@ namespace Dapper.Database
             }
 
             ColumnInfos = type.GetProperties()
-                .Where(t => t.GetCustomAttributes(typeof(IgnoreAttribute), false).Count() == 0)
-                .Select(t =>
-                {
-                    var columnAtt = t.GetCustomAttributes(false).SingleOrDefault(attr => attr.GetType().Name == "ColumnAttribute") as dynamic;
-                    var seqAtt = t.GetCustomAttributes(false).SingleOrDefault(a => a is SequenceAttribute) as dynamic;
-
-                    var ci = new ColumnInfo
-                    {
-                        Property = t,
-                        ColumnName = columnAtt?.Name ?? t.Name,
-                        PropertyName = t.Name,
-                        IsKey = t.GetCustomAttributes(false).Any(a => a is KeyAttribute),
-                        IsIdentity = (t.GetCustomAttributes(false).Any(a => a is DatabaseGeneratedAttribute g
-                          && g.DatabaseGeneratedOption == DatabaseGeneratedOption.Identity))
-                          || seqAtt != null,
-                        IsGenerated = (t.GetCustomAttributes(false).Any(a => a is DatabaseGeneratedAttribute g
-                            && g.DatabaseGeneratedOption != DatabaseGeneratedOption.None))
-                            || seqAtt != null,
-                        ExcludeOnSelect = t.GetCustomAttributes(false).Any(a => a is IgnoreSelectAttribute),
-                        SequenceName = seqAtt?.Name
-                    };
-
-                    ci.ExcludeOnInsert = (ci.IsGenerated && seqAtt == null)
-                        || t.GetCustomAttributes(false).Any(a => a is IgnoreInsertAttribute)
-                        || t.GetCustomAttributes(false).Any(a => a is ReadOnlyAttribute);
-
-                    ci.ExcludeOnUpdate = ci.IsGenerated
-                        || t.GetCustomAttributes(false).Any(a => a is IgnoreUpdateAttribute)
-                        || t.GetCustomAttributes(false).Any(a => a is ReadOnlyAttribute);
-
-                    if (ci.IsGenerated)
-                    {
-                        var parameter = Expression.Parameter(type);
-                        var property = Expression.Property(parameter, ci.Property);
-                        var conversion = Expression.Convert(property, typeof(object));
-                        var lambda = Expression.Lambda(conversion, parameter);
-                        ci.Output = lambda;
-                    }
-
-                    return ci;
-                })
+                .Where(t => !t.GetCustomAttributes(typeof(IgnoreAttribute), false).Any())
+                .Select(t => BuildColumnInfoFromAttributes(t, type))
                 .ToArray();
 
             if (!ColumnInfos.Any(k => k.IsKey))
@@ -127,6 +89,66 @@ namespace Dapper.Database
             _keyColumns = new Lazy<IEnumerable<ColumnInfo>>(() => ColumnInfos.Where(ci => ci.IsKey), true);
             _generatedColumns = new Lazy<IEnumerable<ColumnInfo>>(() => ColumnInfos.Where(ci => ci.IsGenerated), true);
             _propertyList = new Lazy<IEnumerable<PropertyInfo>>(() => ColumnInfos.Select(ci => ci.Property), true);
+        }
+
+        protected virtual ColumnInfo BuildColumnInfoFromAttributes(PropertyInfo t, Type type)
+        {
+            var columnAtt = t.GetCustomAttributes(false).SingleOrDefault(attr => attr.GetType().Name == "ColumnAttribute") as dynamic;
+            var seqAtt = t.GetCustomAttributes(false).SingleOrDefault(a => a is SequenceAttribute) as dynamic;
+
+            var ci = new ColumnInfo
+            {
+                Property = t,
+                ColumnName = columnAtt?.Name ?? t.Name,
+                PropertyName = t.Name,
+                IsKey = t.GetCustomAttributes(false).Any(a => a is KeyAttribute),
+                IsIdentity = (t.GetCustomAttributes(false).Any(a => a is DatabaseGeneratedAttribute g
+                  && g.DatabaseGeneratedOption == DatabaseGeneratedOption.Identity))
+                  || seqAtt != null,
+                IsGenerated = (t.GetCustomAttributes(false).Any(a => a is DatabaseGeneratedAttribute g
+                    && g.DatabaseGeneratedOption != DatabaseGeneratedOption.None))
+                    || seqAtt != null,
+                ExcludeOnSelect = t.GetCustomAttributes(false).Any(a => a is IgnoreSelectAttribute),
+                SequenceName = seqAtt?.Name
+            };
+
+            ci.ExcludeOnInsert = (ci.IsGenerated && seqAtt == null)
+                || t.GetCustomAttributes(false).Any(a => a is IgnoreInsertAttribute)
+                || t.GetCustomAttributes(false).Any(a => a is ReadOnlyAttribute);
+
+            ci.ExcludeOnUpdate = ci.IsGenerated
+                || t.GetCustomAttributes(false).Any(a => a is IgnoreUpdateAttribute)
+                || t.GetCustomAttributes(false).Any(a => a is ReadOnlyAttribute);
+            if (ci.IsGenerated)
+            {
+                var parameter = Expression.Parameter(type);
+                var property = Expression.Property(parameter, ci.Property);
+                var conversion = Expression.Convert(property, typeof(object));
+                var lambda = Expression.Lambda(conversion, parameter);
+                ci.Output = lambda;
+            }
+
+            ci.IsVersion = DetermineIfIsVersionProperty(t, type, ci);
+
+            return ci;
+        }
+
+        private static bool DetermineIfIsVersionProperty(PropertyInfo t, Type type, ColumnInfo ci)
+        {
+            var isVersionSpecified = t.GetCustomAttributes(false).Any(a => a is ConcurrencyCheckAttribute);
+            if (!isVersionSpecified) return false;
+            
+            var isVersionValid = !ci.IsKey && !ci.IsGenerated && !ci.IsIdentity && !ci.ExcludeOnUpdate &&
+                                 !ci.ExcludeOnInsert && !ci.ExcludeOnSelect;
+            if (!isVersionValid)
+            {
+                throw new ValidationException(
+                    $"Property: {ci.PropertyName} on {type.Name} cannot have a ConcurrencyCheckAttribute specified along with any of the following notations: " +
+                    $"Key, Identity, Generated, IgnoreUpdate, or ReadOnly.");
+            }
+
+            return true;
+
         }
 
         /// <summary>
@@ -237,6 +259,12 @@ namespace Dapper.Database
         /// 
         /// </summary>
         public bool IsKey { get; set; }
+
+        /// <summary>
+        /// This property is the "Version" for Optimistic Concurrency on the table. Uses <see cref="ConcurrencyCheckAttribute"/>
+        /// NOTE: Can only have one Version column specified on the table, and it cannot also be a Key, Identity, etc.
+        /// </summary>
+        public bool IsVersion { get; set; }
 
         /// <summary>
         /// 

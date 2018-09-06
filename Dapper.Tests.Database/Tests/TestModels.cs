@@ -37,6 +37,17 @@ namespace Dapper.Tests.Database
         public string FirstName { get; set; }
         public string LastName { get; set; }
     }
+    
+    [Table("Person")]
+    public class PersonUniqueIdentifierWithVersionDateTime
+    {
+        [Key]
+        public Guid GuidId { get; set; }
+        [ConcurrencyCheck]
+        public DateTime Version { get; set; }
+        public string FirstName { get; set; }
+        public string LastName { get; set; }
+    }
 
     [Table("Person")]
     public class PersonUniqueIdentifierWithAliases
