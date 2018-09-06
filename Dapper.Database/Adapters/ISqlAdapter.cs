@@ -129,7 +129,11 @@ namespace Dapper.Database.Adapters
         /// <returns>true if the entity was updated</returns>
         Task<bool> UpdateAsync<T>(IDbConnection connection, IDbTransaction transaction, int? commandTimeout, TableInfo tableInfo, T entityToUpdate, IEnumerable<string> columnsToUpdate);
 
-
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="columns"></param>
+        /// <returns></returns>
         string EscapeWhereList(IEnumerable<ColumnInfo> columns);
     }
 }

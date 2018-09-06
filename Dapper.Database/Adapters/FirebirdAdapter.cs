@@ -39,7 +39,7 @@ namespace Dapper.Database.Adapters
                 foreach (var key in rvals.Keys)
                 {
                     var rval = rvals[key];
-                    var p = tableInfo.GeneratedColumns.Single(gp => gp.PropertyName.Equals(key, StringComparison.OrdinalIgnoreCase)).Property;
+                    var p = tableInfo.GeneratedColumns.Single(gp => gp.ColumnName.Equals(key, StringComparison.OrdinalIgnoreCase)).Property;
                     p.SetValue(entityToInsert, Convert.ChangeType(rval, p.PropertyType), null);
                 }
 
@@ -79,7 +79,7 @@ namespace Dapper.Database.Adapters
                 foreach (var key in rvals.Keys)
                 {
                     var rval = rvals[key];
-                    var p = tableInfo.GeneratedColumns.Single(gp => gp.PropertyName.Equals(key, StringComparison.OrdinalIgnoreCase)).Property;
+                    var p = tableInfo.GeneratedColumns.Single(gp => gp.ColumnName.Equals(key, StringComparison.OrdinalIgnoreCase)).Property;
                     p.SetValue(entityToUpdate, Convert.ChangeType(rval, p.PropertyType), null);
                 }
 
@@ -119,7 +119,7 @@ namespace Dapper.Database.Adapters
                 foreach (var key in rvals.Keys)
                 {
                     var rval = rvals[key];
-                    var p = tableInfo.GeneratedColumns.Single(gp => gp.PropertyName.Equals(key, StringComparison.OrdinalIgnoreCase)).Property;
+                    var p = tableInfo.GeneratedColumns.Single(gp => gp.ColumnName.Equals(key, StringComparison.OrdinalIgnoreCase)).Property;
                     p.SetValue(entityToInsert, Convert.ChangeType(rval, p.PropertyType), null);
                 }
 
@@ -161,7 +161,7 @@ namespace Dapper.Database.Adapters
                 foreach (var key in rvals.Keys)
                 {
                     var rval = rvals[key];
-                    var p = tableInfo.GeneratedColumns.Single(gp => gp.PropertyName.Equals(key, StringComparison.OrdinalIgnoreCase)).Property;
+                    var p = tableInfo.GeneratedColumns.Single(gp => gp.ColumnName.Equals(key, StringComparison.OrdinalIgnoreCase)).Property;
                     p.SetValue(entityToUpdate, Convert.ChangeType(rval, p.PropertyType), null);
                 }
 
@@ -221,7 +221,6 @@ namespace Dapper.Database.Adapters
                 sqlOrderBy = $"order by {EscapeColumnn(tableInfo.KeyColumns.First().PropertyName)}";
             }
 
-            // TODO: can you bind these as bind variables in Firebird?
             return $"select first {pageSize} skip {pageSkip} * from ({q.Sql}) page_inner {sqlOrderBy}";
         }
 

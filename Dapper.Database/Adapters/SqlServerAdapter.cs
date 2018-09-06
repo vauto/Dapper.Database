@@ -230,7 +230,6 @@ namespace Dapper.Database.Adapters
 
             var columnsOnly = $"page_inner.* FROM ({sqlOrderByRemoved}) page_inner";
 
-            // TODO: can you bind these as bind variables in Sql Server CE?
             return $"select * from (select row_number() over ({sqlOrderBy}) page_rn, {columnsOnly}) page_outer where page_rn > {pageSkip} and page_rn <= {pageTake}";
 
         }
