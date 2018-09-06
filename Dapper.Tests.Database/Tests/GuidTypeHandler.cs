@@ -27,6 +27,7 @@ namespace Dapper.Tests.Database
                     // convert it from ASCII.
                     return new Guid(Encoding.ASCII.GetString(b));
                 default:
+                    // ReSharper disable once PossibleInvalidCastException - use the built-in message.
                     return (Guid)value;
             }
         }
