@@ -24,7 +24,7 @@ namespace Dapper.Database
     {
 
         private readonly Lazy<IEnumerable<ColumnInfo>> _insertColumns;
-        private readonly Lazy<ColumnInfo> _versionColumn;
+        private readonly Lazy<VersionColumnInfo> _versionColumn;
         private readonly Lazy<IEnumerable<ColumnInfo>> _updateColumns;
         private readonly Lazy<IEnumerable<ColumnInfo>> _selectColumns;
         private readonly Lazy<IEnumerable<ColumnInfo>> _keyColumns;
@@ -69,8 +69,8 @@ namespace Dapper.Database
             }
 
             ColumnInfos = type.GetProperties()
-                .Where(t => !t.GetCustomAttributes(typeof(IgnoreAttribute), false).Any())
-                .Select(t => BuildColumnInfoFromAttributes(t, type))
+                .Where(pInfo => !pInfo.GetCustomAttributes(typeof(IgnoreAttribute), false).Any())
+                .Select(pInfo => BuildColumnInfoFromAttributes(pInfo, type))
                 .ToArray();
 
             if (!ColumnInfos.Any(k => k.IsKey))
@@ -84,60 +84,63 @@ namespace Dapper.Database
             }
 
             _insertColumns = new Lazy<IEnumerable<ColumnInfo>>(() => ColumnInfos.Where(ci => !ci.ExcludeOnInsert), true);
-            _updateColumns = new Lazy<IEnumerable<ColumnInfo>>(() => ColumnInfos.Where(ci => !ci.ExcludeOnUpdate), true);
+            _updateColumns = new Lazy<IEnumerable<ColumnInfo>>(() => ColumnInfos.Where(ci => !ci.ExcludeOnUpdate && !ci.IsVersion), true);
             _selectColumns = new Lazy<IEnumerable<ColumnInfo>>(() => ColumnInfos.Where(ci => !ci.ExcludeOnSelect), true);
             _keyColumns = new Lazy<IEnumerable<ColumnInfo>>(() => ColumnInfos.Where(ci => ci.IsKey), true);
             _generatedColumns = new Lazy<IEnumerable<ColumnInfo>>(() => ColumnInfos.Where(ci => ci.IsGenerated), true);
             _propertyList = new Lazy<IEnumerable<PropertyInfo>>(() => ColumnInfos.Select(ci => ci.Property), true);
+            _versionColumn = new Lazy<VersionColumnInfo>(() => (VersionColumnInfo)ColumnInfos.SingleOrDefault(ci => ci is VersionColumnInfo && ci.IsVersion));
         }
 
-        protected virtual ColumnInfo BuildColumnInfoFromAttributes(PropertyInfo t, Type type)
+        protected virtual ColumnInfo BuildColumnInfoFromAttributes(PropertyInfo propertyInfo, Type classType)
         {
-            var columnAtt = t.GetCustomAttributes(false).SingleOrDefault(attr => attr.GetType().Name == "ColumnAttribute") as dynamic;
-            var seqAtt = t.GetCustomAttributes(false).SingleOrDefault(a => a is SequenceAttribute) as dynamic;
+            var columnAtt = propertyInfo.GetCustomAttributes(false).SingleOrDefault(attr => attr.GetType().Name == "ColumnAttribute") as dynamic;
+            var seqAtt = propertyInfo.GetCustomAttributes(false).SingleOrDefault(a => a is SequenceAttribute) as dynamic;
 
-            var ci = new ColumnInfo
-            {
-                Property = t,
-                ColumnName = columnAtt?.Name ?? t.Name,
-                PropertyName = t.Name,
-                IsKey = t.GetCustomAttributes(false).Any(a => a is KeyAttribute),
-                IsIdentity = (t.GetCustomAttributes(false).Any(a => a is DatabaseGeneratedAttribute g
-                  && g.DatabaseGeneratedOption == DatabaseGeneratedOption.Identity))
-                  || seqAtt != null,
-                IsGenerated = (t.GetCustomAttributes(false).Any(a => a is DatabaseGeneratedAttribute g
-                    && g.DatabaseGeneratedOption != DatabaseGeneratedOption.None))
-                    || seqAtt != null,
-                ExcludeOnSelect = t.GetCustomAttributes(false).Any(a => a is IgnoreSelectAttribute),
-                SequenceName = seqAtt?.Name
-            };
+            var isVersionSpecified = propertyInfo.GetCustomAttributes(false).Any(a => a is ConcurrencyCheckAttribute);
+            var ci = (isVersionSpecified) ? new VersionColumnInfo(propertyInfo) : new ColumnInfo(propertyInfo);
+
+            ci.IsVersion = isVersionSpecified;
+            ci.Property = propertyInfo;
+            ci.ColumnName = columnAtt?.Name ?? propertyInfo.Name;
+            ci.PropertyName = propertyInfo.Name;
+            ci.IsKey = propertyInfo.GetCustomAttributes(false).Any(a => a is KeyAttribute);
+            ci.IsIdentity = (propertyInfo.GetCustomAttributes(false).Any(a => a is DatabaseGeneratedAttribute g
+                                                                   && g.DatabaseGeneratedOption ==
+                                                                   DatabaseGeneratedOption.Identity))
+                            || seqAtt != null;
+            ci.IsGenerated = (propertyInfo.GetCustomAttributes(false).Any(a => a is DatabaseGeneratedAttribute g
+                                                                    && g.DatabaseGeneratedOption !=
+                                                                    DatabaseGeneratedOption.None))
+                             || seqAtt != null;
+            ci.ExcludeOnSelect = propertyInfo.GetCustomAttributes(false).Any(a => a is IgnoreSelectAttribute);
+            ci.SequenceName = seqAtt?.Name;
 
             ci.ExcludeOnInsert = (ci.IsGenerated && seqAtt == null)
-                || t.GetCustomAttributes(false).Any(a => a is IgnoreInsertAttribute)
-                || t.GetCustomAttributes(false).Any(a => a is ReadOnlyAttribute);
+                || propertyInfo.GetCustomAttributes(false).Any(a => a is IgnoreInsertAttribute)
+                || propertyInfo.GetCustomAttributes(false).Any(a => a is ReadOnlyAttribute);
 
             ci.ExcludeOnUpdate = ci.IsGenerated
-                || t.GetCustomAttributes(false).Any(a => a is IgnoreUpdateAttribute)
-                || t.GetCustomAttributes(false).Any(a => a is ReadOnlyAttribute);
+                || propertyInfo.GetCustomAttributes(false).Any(a => a is IgnoreUpdateAttribute)
+                || propertyInfo.GetCustomAttributes(false).Any(a => a is ReadOnlyAttribute);
             if (ci.IsGenerated)
             {
-                var parameter = Expression.Parameter(type);
+                var parameter = Expression.Parameter(classType);
                 var property = Expression.Property(parameter, ci.Property);
                 var conversion = Expression.Convert(property, typeof(object));
                 var lambda = Expression.Lambda(conversion, parameter);
                 ci.Output = lambda;
             }
 
-            ci.IsVersion = DetermineIfIsVersionProperty(t, type, ci);
+            ThrowIfColumnInfoIsInvalid(classType, ci);
 
             return ci;
         }
 
-        private static bool DetermineIfIsVersionProperty(PropertyInfo t, Type type, ColumnInfo ci)
+        private static void ThrowIfColumnInfoIsInvalid(Type type, ColumnInfo ci)
         {
-            var isVersionSpecified = t.GetCustomAttributes(false).Any(a => a is ConcurrencyCheckAttribute);
-            if (!isVersionSpecified) return false;
-            
+            if (ci.IsVersion) return;
+
             var isVersionValid = !ci.IsKey && !ci.IsGenerated && !ci.IsIdentity && !ci.ExcludeOnUpdate &&
                                  !ci.ExcludeOnInsert && !ci.ExcludeOnSelect;
             if (!isVersionValid)
@@ -147,8 +150,7 @@ namespace Dapper.Database
                     $"Key, Identity, Generated, IgnoreUpdate, or ReadOnly.");
             }
 
-            return true;
-
+            //Additional column validation checks here, if needed.
         }
 
         /// <summary>
@@ -206,6 +208,12 @@ namespace Dapper.Database
         /// 
         /// </summary>
         /// <returns></returns>
+        public VersionColumnInfo VersionColumn => _versionColumn.Value;
+
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <returns></returns>
         public IEnumerable<ColumnInfo> UpdateColumns => _updateColumns.Value;
 
         /// <summary>
@@ -241,10 +249,16 @@ namespace Dapper.Database
     }
 
     /// <summary>
-    /// 
+    /// The database specific description of a property on a type.
     /// </summary>
     public class ColumnInfo
     {
+        public ColumnInfo(PropertyInfo propertyInfo)
+        {
+            Property = propertyInfo;
+
+        }
+
         /// <summary>
         /// 
         /// </summary>
@@ -261,12 +275,6 @@ namespace Dapper.Database
         public bool IsKey { get; set; }
 
         /// <summary>
-        /// This property is the "Version" for Optimistic Concurrency on the table. Uses <see cref="ConcurrencyCheckAttribute"/>
-        /// NOTE: Can only have one Version column specified on the table, and it cannot also be a Key, Identity, etc.
-        /// </summary>
-        public bool IsVersion { get; set; }
-
-        /// <summary>
         /// 
         /// </summary>
         public bool IsGenerated { get; set; }
@@ -275,6 +283,11 @@ namespace Dapper.Database
         /// 
         /// </summary>
         public bool IsIdentity { get; set; }
+
+        /// <summary>
+        /// 
+        /// </summary>
+        public bool IsVersion { get; set; }
 
         /// <summary>
         /// 
@@ -312,9 +325,36 @@ namespace Dapper.Database
         /// <typeparam name="T"></typeparam>
         /// <param name="instance"></param>
         /// <returns></returns>
-        public object GetValue<T>(T instance)
+        public virtual object GetValue<T>(T instance)
         {
             return Property.GetValue(instance);
+        }
+    }
+
+    /// <summary>
+    /// The Version column has specific behavior and additional data that needs to be consumed like a ColumnInfo.
+    /// Specifically, we need to specify a different value to update the Version column to, from what is used as part of the where clause
+    /// This property is the "Version" for Optimistic Concurrency on the table. Uses <see cref="ConcurrencyCheckAttribute"/>
+    /// NOTE: Can only have one Version column specified on the table, and it cannot also be a Key, Identity, etc.
+    /// </summary>
+    public class VersionColumnInfo : ColumnInfo
+    {
+        public VersionColumnInfo(PropertyInfo propertyInfo)
+        : base(propertyInfo)
+        {
+
+        }
+
+
+        /// <summary>
+        /// This is assumed to be the value for an update
+        /// </summary>
+        /// <typeparam name="T"></typeparam>
+        /// <param name="instance"></param>
+        /// <returns></returns>
+        public override object GetValue<T>(T instance)
+        {
+            return base.GetValue(instance);
         }
     }
 }
