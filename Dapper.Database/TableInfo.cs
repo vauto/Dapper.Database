@@ -139,10 +139,9 @@ namespace Dapper.Database
 
         private static void ThrowIfColumnInfoIsInvalid(Type type, ColumnInfo ci)
         {
-            if (ci.IsVersion) return;
-
-            var isVersionValid = !ci.IsKey && !ci.IsGenerated && !ci.IsIdentity && !ci.ExcludeOnUpdate &&
-                                 !ci.ExcludeOnInsert && !ci.ExcludeOnSelect;
+            var isVersionValid = ci.IsVersion 
+                                 && (!ci.IsKey && !ci.IsGenerated && !ci.IsIdentity && !ci.ExcludeOnUpdate &&
+                                 !ci.ExcludeOnInsert && !ci.ExcludeOnSelect);
             if (!isVersionValid)
             {
                 throw new ValidationException(
