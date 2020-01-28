@@ -38,6 +38,12 @@ namespace Dapper.Database.Adapters
             new ConcurrentDictionary<RuntimeTypeHandle, string>();
 
         /// <summary>
+        ///     Cache for Delete Queries
+        /// </summary>
+        protected static readonly ConcurrentDictionary<RuntimeTypeHandle, string> DeleteQueries =
+            new ConcurrentDictionary<RuntimeTypeHandle, string>();
+
+        /// <summary>
         ///     Parameter name for page size in <see cref="GetPageListQuery" />.
         /// </summary>
         protected virtual string PageSizeParamName { get; } = "__PageSize";
@@ -77,6 +83,21 @@ namespace Dapper.Database.Adapters
                 tableInfo.ClassType.TypeHandle,
                 () => columnsToUpdate == null || !columnsToUpdate.Any(),
                 () => BuildUpdateQuery(tableInfo, columnsToUpdate));
+
+        /// <summary>
+        ///     Default implementation of a delete object query
+        /// </summary>
+        /// <param name="tableInfo">table information about the entity</param>
+        /// <returns>An insert sql statement</returns>
+        /// <remarks>
+        ///     Statements are cached by type handle.
+        /// </remarks>
+        public virtual string DeleteQuery(TableInfo tableInfo) =>
+            DeleteQueries.Acquire(
+                tableInfo.ClassType.TypeHandle,
+                () => true,
+                () => BuildDeleteQuery(tableInfo)
+            );
 
         /// <summary>
         ///     Default implementation of an exists object query
@@ -298,6 +319,15 @@ namespace Dapper.Database.Adapters
             return
                 $"update {EscapeTableName(tableInfo)} set {EscapeAssignmentList(updates)} where {EscapeWhereList(tableInfo.ComparisonColumns)}";
         }
+
+        /// <summary>
+        ///     Default implementation of a delete query.
+        /// </summary>
+        /// <param name="tableInfo">table information about the entity</param>
+        /// <returns>An insert sql statement</returns>
+        protected virtual string BuildDeleteQuery(TableInfo tableInfo)
+            =>
+                $"delete from {EscapeTableName(tableInfo)} where {EscapeWhereList(tableInfo.ComparisonColumns)}";
 
         /// <summary>
         ///     Default implementation of an exists object query.
@@ -729,6 +759,40 @@ namespace Dapper.Database.Adapters
                 }
 
             return success;
+        }
+
+        #endregion
+
+        #region Delete Implementations
+
+        /// <summary>
+        ///     Deletes an entity from table "Ts"
+        /// </summary>
+        /// <param name="connection">Open SqlConnection</param>
+        /// <param name="transaction">The transaction to run under, null (the default) if none</param>
+        /// <param name="commandTimeout">Number of seconds before command execution timeout</param>
+        /// <param name="tableInfo">table information about the entity</param>
+        /// <param name="entityToDelete">Entity to delete</param>
+        /// <returns>true if the entity was deleted</returns>
+        public virtual bool Delete<T>(IDbConnection connection, IDbTransaction transaction, int? commandTimeout,
+            TableInfo tableInfo, T entityToDelete)
+        {
+            return connection.Execute(DeleteQuery(tableInfo), entityToDelete, transaction, commandTimeout) > 0;
+        }
+
+        /// <summary>
+        ///     Deletes an entity from table "Ts"
+        /// </summary>
+        /// <param name="connection">Open SqlConnection</param>
+        /// <param name="transaction">The transaction to run under, null (the default) if none</param>
+        /// <param name="commandTimeout">Number of seconds before command execution timeout</param>
+        /// <param name="tableInfo">table information about the entity</param>
+        /// <param name="entityToDelete">Entity to delete</param>
+        /// <returns>true if the entity was deleted</returns>
+        public virtual async Task<bool> DeleteAsync<T>(IDbConnection connection, IDbTransaction transaction,
+            int? commandTimeout, TableInfo tableInfo, T entityToDelete)
+        {
+            return await connection.ExecuteAsync(DeleteQuery(tableInfo), entityToDelete, transaction, commandTimeout) > 0;
         }
 
         #endregion

@@ -97,6 +97,18 @@ namespace Dapper.Database.Adapters
             Action<T> insertAction, Action<T> updateAction);
 
         /// <summary>
+        ///     Deletes an entity from table "Ts"
+        /// </summary>
+        /// <param name="connection">Open SqlConnection</param>
+        /// <param name="transaction">The transaction to run under, null (the default) if none</param>
+        /// <param name="commandTimeout">Number of seconds before command execution timeout</param>
+        /// <param name="tableInfo">table information about the entity</param>
+        /// <param name="entityToDelete">Entity to delete</param>
+        /// <returns>true if the entity was deleted</returns>
+        bool Delete<T>(IDbConnection connection, IDbTransaction transaction, int? commandTimeout,
+            TableInfo tableInfo, T entityToDelete);
+
+        /// <summary>
         ///     Tests whether an entity exists in table "Ts"
         /// </summary>
         /// <param name="connection">Open SqlConnection</param>
@@ -268,6 +280,18 @@ namespace Dapper.Database.Adapters
         Task<bool> UpsertListAsync<T>(IDbConnection connection, IDbTransaction transaction, int? commandTimeout,
             TableInfo tableInfo, IEnumerable<T> entitiesToUpsert, IEnumerable<string> columnsToUpdate,
             Action<T> insertAction, Action<T> updateAction);
+
+        /// <summary>
+        ///     Deletes an entity from table "Ts"
+        /// </summary>
+        /// <param name="connection">Open SqlConnection</param>
+        /// <param name="transaction">The transaction to run under, null (the default) if none</param>
+        /// <param name="commandTimeout">Number of seconds before command execution timeout</param>
+        /// <param name="tableInfo">table information about the entity</param>
+        /// <param name="entityToDelete">Entity to delete</param>
+        /// <returns>true if the entity was deleted</returns>
+        Task<bool> DeleteAsync<T>(IDbConnection connection, IDbTransaction transaction,
+            int? commandTimeout, TableInfo tableInfo, T entityToDelete);
 
         /// <summary>
         /// </summary>
