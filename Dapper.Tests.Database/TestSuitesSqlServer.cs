@@ -210,6 +210,26 @@ namespace Dapper.Tests.Database
             }
         }
 
+        [Fact]
+        [Trait("Category", "Delete")]
+        public void DeleteTimestamp()
+        {
+            using (var db = GetSqlDatabase())
+            {
+                var p = new PersonTimestamp { GuidId = Guid.NewGuid(), FirstName = "Alice", LastName = "Jones" };
+                Assert.True(db.Insert(p));
+                Assert.NotNull(p.ConcurrencyToken);
+                var token1 = p.ConcurrencyToken;
+
+                // Simulate an independent change
+                db.Execute("update Person set Age = 1 where GuidId = @GuidId", p);
+
+                Assert.False(db.Delete(p), "ConcurrencyToken should be different");
+
+                Assert.True(db.Exists<PersonTimestamp>(p.GuidId));
+            }
+        }
+
         #endregion
     }
 }

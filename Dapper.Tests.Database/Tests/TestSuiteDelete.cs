@@ -212,5 +212,23 @@ namespace Dapper.Tests.Database
                 Assert.Equal(1, db.Count<PersonIdentity>("where FirstName = 'DeleteOther'"));
             }
         }
+
+        [Fact]
+        [Trait("Category", "Delete")]
+        public void DeleteConcurrencyCheck()
+        {
+            using (var db = GetSqlDatabase())
+            {
+                var p = new PersonConcurrencyCheck { GuidId = Guid.NewGuid(), FirstName = "Alice", LastName = "Jones", StringId = "abc" };
+                Assert.True(db.Insert(p));
+
+                // Modify one of the concurrency-check columns to simulate it changing out from underneath us.
+                db.Execute("update Person set StringId = 'xyz' where GuidId = @GuidId", p);
+
+                Assert.False(db.Delete(p), "StringId changed elsewhere, update not permitted");
+
+                Assert.True(db.Exists<PersonConcurrencyCheck>(p.GuidId));
+            }
+        }
     }
 }
