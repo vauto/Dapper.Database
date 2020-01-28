@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Threading.Tasks;
+using Dapper.Database;
 using Dapper.Database.Extensions;
 using Xunit;
 using FactAttribute = Xunit.SkippableFactAttribute;
@@ -241,7 +242,7 @@ namespace Dapper.Tests.Database
                 // Modify one of the concurrency-check columns to simulate it changing out from underneath us.
                 await db.ExecuteAsync("update Person set StringId = 'xyz' where GuidId = @GuidId", p);
 
-                Assert.False(await db.DeleteAsync(p), "StringId changed elsewhere, update not permitted");
+                await Assert.ThrowsAnyAsync<OptimisticConcurrencyException>(() => db.DeleteAsync(p));
 
                 Assert.True(await db.ExistsAsync<PersonConcurrencyCheck>(p.GuidId));
             }

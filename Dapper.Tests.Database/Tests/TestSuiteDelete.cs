@@ -1,4 +1,5 @@
 ﻿using System;
+using Dapper.Database;
 using Dapper.Database.Extensions;
 using Xunit;
 using FactAttribute = Xunit.SkippableFactAttribute;
@@ -229,7 +230,7 @@ namespace Dapper.Tests.Database
         }
 
         [Fact]
-        [Trait("Category", "DeleteAsync")]
+        [Trait("Category", "Delete")]
         public void DeleteConcurrencyCheckModified()
         {
             using (var db = GetSqlDatabase())
@@ -240,7 +241,7 @@ namespace Dapper.Tests.Database
                 // Modify one of the concurrency-check columns to simulate it changing out from underneath us.
                 db.Execute("update Person set StringId = 'xyz' where GuidId = @GuidId", p);
 
-                Assert.False(db.Delete(p), "StringId changed elsewhere, update not permitted");
+                Assert.ThrowsAny<OptimisticConcurrencyException>(() => db.Delete(p));
 
                 Assert.True(db.Exists<PersonConcurrencyCheck>(p.GuidId));
             }
