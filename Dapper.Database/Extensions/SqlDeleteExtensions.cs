@@ -12,17 +12,18 @@ namespace Dapper.Database.Extensions
         #region Delete Extensions
 
         /// <summary>
-        ///     Delete entity in table "Ts" that match the key values of the entity (T) passed in
+        ///     Delete entity in table "Ts" that match the key values of the entity (<typeparamref name="T"/>) passed in
         /// </summary>
         /// <typeparam name="T">Type of entity</typeparam>
         /// <param name="connection">Open SqlConnection</param>
         /// <param name="entityToDelete">
-        ///     Entity to delete. If Keys are specified, they will be used as the WHERE condition to
+        ///     Entity to delete. If Keys are specified, they will be used as the <c>WHERE</c> condition to
         ///     delete.
         /// </param>
         /// <param name="transaction">The transaction to run under, null (the default) if none</param>
         /// <param name="commandTimeout">Number of seconds before command execution timeout</param>
         /// <returns>true if deleted, false if not found or was modified</returns>
+        /// <exception cref="OptimisticConcurrencyException">if <paramref name="entityToDelete"/> was modified by a different connection</exception>
         public static bool Delete<T>(this IDbConnection connection, T entityToDelete, IDbTransaction transaction = null,
             int? commandTimeout = null) where T : class
         {
@@ -35,17 +36,19 @@ namespace Dapper.Database.Extensions
         }
 
         /// <summary>
-        ///     Delete entity in table "Ts" by a primary key value specified on (T)
+        ///     Delete entity in table "Ts" by a primary key value specified on <typeparamref name="T"/>,
+        ///     bypassing optimistic concurrency checks.
         /// </summary>
+        /// <typeparam name="T">Type of entity</typeparam>
         /// <param name="connection">Open SqlConnection</param>
         /// <param name="primaryKeyValue">a Single primary key to delete</param>
         /// <param name="transaction">The transaction to run under, null (the default) if none</param>
         /// <param name="commandTimeout">Number of seconds before command execution timeout</param>
         /// <returns>true if deleted, false if not found</returns>
+        /// <seealso cref="Delete{T}(IDbConnection, T, IDbTransaction, int?)"/>
         public static bool Delete<T>(this IDbConnection connection, object primaryKeyValue,
             IDbTransaction transaction = null, int? commandTimeout = null) where T : class
         {
-            // FIXME need to rewrite this for concurrency check!
             var qh = new SqlQueryHelper(typeof(T), connection);
             var deleteQuery = qh.GenerateSingleKeyQuery(primaryKeyValue, (ti, sql) => qh.Adapter.DeleteQuery(ti, sql));
             return connection.Execute(deleteQuery.SqlStatement, deleteQuery.Parameters, transaction, commandTimeout) >
@@ -53,14 +56,16 @@ namespace Dapper.Database.Extensions
         }
 
         /// <summary>
-        ///     Delete entity in table "Ts" by an un-parameterized WHERE clause.
-        ///     If you want to Delete All of the data, call the DeleteAll() command
+        ///     Delete entity in table "Ts" by an un-parameterized <c>WHERE</c> clause.
+        ///     If you want to delete all of the data, use <see cref="DeleteAll{T}"/>.
         /// </summary>
+        /// <typeparam name="T">Type of entity</typeparam>
         /// <param name="connection">Open SqlConnection</param>
-        /// <param name="whereClause">The where clause to use to bound a delete, cannot be null, empty, or whitespace</param>
+        /// <param name="whereClause">The <c>WHERE</c> clause to use to bound a delete, cannot be null, empty, or whitespace</param>
         /// <param name="transaction">The transaction to run under, null (the default) if none</param>
         /// <param name="commandTimeout">Number of seconds before command execution timeout</param>
         /// <returns>true if deleted, false if not found</returns>
+        /// <exception cref="ArgumentException">If <paramref name="whereClause"/> is null, empty, or whitespace.</exception>
         public static bool Delete<T>(this IDbConnection connection, string whereClause,
             IDbTransaction transaction = null, int? commandTimeout = null) where T : class
         {
@@ -72,12 +77,13 @@ namespace Dapper.Database.Extensions
         }
 
         /// <summary>
-        ///     Delete entity in table "Ts" by a parameterized WHERE clause, with Parameters passed in.
-        ///     If you want to Delete All of the data, call the DeleteAll() command
+        ///     Delete entity in table "Ts" by a parameterized <c>WHERE</c> clause, with parameters passed in.
+        ///     If you want to delete all of the data, use <see cref="DeleteAll{T}"/>.
         /// </summary>
+        /// <typeparam name="T">Type of entity</typeparam>
         /// <param name="connection">Open SqlConnection</param>
-        /// <param name="whereClause">The where clause to use to bound a delete, cannot be null, empty, or whitespace</param>
-        /// <param name="parameters">The parameters of the where clause to delete</param>
+        /// <param name="whereClause">The <c>WHERE</c> clause to use to bound a delete, cannot be null, empty, or whitespace</param>
+        /// <param name="parameters">The parameters of the <c>WHERE</c> clause to delete</param>
         /// <param name="transaction">The transaction to run under, null (the default) if none</param>
         /// <param name="commandTimeout">Number of seconds before command execution timeout</param>
         /// <returns>true if deleted, false if not found</returns>
@@ -94,6 +100,7 @@ namespace Dapper.Database.Extensions
         /// <summary>
         ///     Delete ALL entities in table "Ts".
         /// </summary>
+        /// <typeparam name="T">Type of entity</typeparam>
         /// <param name="connection">Open SqlConnection</param>
         /// <param name="transaction">The transaction to run under, null (the default) if none</param>
         /// <param name="commandTimeout">Number of seconds before command execution timeout</param>
@@ -111,12 +118,12 @@ namespace Dapper.Database.Extensions
         #region DeleteAsync Extensions
 
         /// <summary>
-        ///     Delete entity in table "Ts" that match the key values of the entity (T) passed in
+        ///     Delete entity in table "Ts" that match the key values of the entity (<typeparamref name="T"/>) passed in
         /// </summary>
         /// <typeparam name="T">Type of entity</typeparam>
         /// <param name="connection">Open SqlConnection</param>
         /// <param name="entityToDelete">
-        ///     Entity to delete. If Keys are specified, they will be used as the WHERE condition to
+        ///     Entity to delete. If Keys are specified, they will be used as the <c>WHERE</c> condition to
         ///     delete.
         /// </param>
         /// <param name="transaction">The transaction to run under, null (the default) if none</param>
@@ -134,17 +141,19 @@ namespace Dapper.Database.Extensions
         }
 
         /// <summary>
-        ///     Delete entity in table "Ts" by a primary key value specified on (T)
+        ///     Delete entity in table "Ts" by a primary key value specified on <typeparamref name="T"/>,
+        ///     bypassing optimistic concurrency checks.
         /// </summary>
+        /// <typeparam name="T">Type of entity</typeparam>
         /// <param name="connection">Open SqlConnection</param>
         /// <param name="primaryKeyValue">a Single primary key to delete</param>
         /// <param name="transaction">The transaction to run under, null (the default) if none</param>
         /// <param name="commandTimeout">Number of seconds before command execution timeout</param>
         /// <returns>true if deleted, false if not found</returns>
+        /// <seealso cref="DeleteAsync{T}(IDbConnection, T, IDbTransaction, int?)"/>
         public static async Task<bool> DeleteAsync<T>(this IDbConnection connection, object primaryKeyValue,
             IDbTransaction transaction = null, int? commandTimeout = null) where T : class
         {
-            // FIXME need to rewrite this for concurrency check!
             var sqlHelper = new SqlQueryHelper(typeof(T), connection);
             var deleteQuery =
                 sqlHelper.GenerateSingleKeyQuery(primaryKeyValue, (ti, sql) => sqlHelper.Adapter.DeleteQuery(ti, sql));
@@ -153,11 +162,12 @@ namespace Dapper.Database.Extensions
         }
 
         /// <summary>
-        ///     Delete entity in table "Ts" by an un-parameterized WHERE clause.
-        ///     If you want to Delete All of the data, call the DeleteAll() command
+        ///     Delete entity in table "Ts" by an un-parameterized <c>WHERE</c> clause.
+        ///     If you want to delete all of the data, use <see cref="DeleteAllAsync{T}"/>.
         /// </summary>
+        /// <typeparam name="T">Type of entity</typeparam>
         /// <param name="connection">Open SqlConnection</param>
-        /// <param name="whereClause">The where clause to use to bound a delete, cannot be null, empty, or whitespace</param>
+        /// <param name="whereClause">The <c>WHERE</c> clause to use to bound a delete, cannot be null, empty, or whitespace</param>
         /// <param name="transaction">The transaction to run under, null (the default) if none</param>
         /// <param name="commandTimeout">Number of seconds before command execution timeout</param>
         /// <returns>true if deleted, false if not found</returns>
@@ -172,12 +182,12 @@ namespace Dapper.Database.Extensions
         }
 
         /// <summary>
-        ///     Delete entity in table "Ts" by a parameterized WHERE clause, with Parameters passed in.
-        ///     If you want to Delete All of the data, call the DeleteAll() command
+        ///     Delete entity in table "Ts" by a parameterized <c>WHERE</c> clause, with parameters passed in.
+        ///     If you want to delete all of the data, use <see cref="DeleteAllAsync{T}"/>.
         /// </summary>
         /// <param name="connection">Open SqlConnection</param>
-        /// <param name="whereClause">The where clause to use to bound a delete, cannot be null, empty, or whitespace</param>
-        /// <param name="parameters">The parameters of the where clause to delete</param>
+        /// <param name="whereClause">The <c>WHERE</c> clause to use to bound a delete, cannot be null, empty, or whitespace</param>
+        /// <param name="parameters">The parameters of the <c>WHERE</c> clause to delete</param>
         /// <param name="transaction">The transaction to run under, null (the default) if none</param>
         /// <param name="commandTimeout">Number of seconds before command execution timeout</param>
         /// <returns>true if deleted, false if not found</returns>

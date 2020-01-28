@@ -497,7 +497,7 @@ namespace Dapper.Database.Adapters
         /// <param name="entityToUpdate">Entity to update</param>
         /// <param name="columnsToUpdate">A list of columns to update</param>
         /// <returns>true if the entity was updated</returns>
-        /// <exception cref="OptimisticConcurrencyException">if <paramref name="entityToUpdate"/> was modified by a different session</exception>
+        /// <exception cref="OptimisticConcurrencyException">if <paramref name="entityToUpdate"/> was modified by a different connection</exception>
         public virtual bool Update<T>(IDbConnection connection, IDbTransaction transaction, int? commandTimeout,
             TableInfo tableInfo, T entityToUpdate, IEnumerable<string> columnsToUpdate)
         {
