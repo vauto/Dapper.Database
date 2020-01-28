@@ -537,6 +537,20 @@ namespace Dapper.Database.Adapters
         }
 
         /// <summary>
+        ///     Performs the SQL <c>UPDATE</c> statement for <see cref="UpdateAsync{T}"/>.
+        /// </summary>
+        /// <typeparam name="T">the entity type</typeparam>
+        /// <param name="connection">Open SqlConnection</param>
+        /// <param name="transaction">The transaction to run under, null (the default) if none</param>
+        /// <param name="commandTimeout">Number of seconds before command execution timeout</param>
+        /// <param name="tableInfo">table information about the entity</param>
+        /// <param name="entityToUpdate">Entity to update</param>
+        /// <param name="columnsToUpdate">A list of columns to update</param>
+        /// <returns>true if the entity was updated</returns>
+        protected abstract Task<bool> UpdateInternalAsync<T>(IDbConnection connection, IDbTransaction transaction,
+            int? commandTimeout, TableInfo tableInfo, T entityToUpdate, IEnumerable<string> columnsToUpdate);
+
+        /// <summary>
         ///     updates an entity into table "Ts"
         /// </summary>
         /// <param name="connection">Open SqlConnection</param>
@@ -547,8 +561,21 @@ namespace Dapper.Database.Adapters
         /// <param name="columnsToUpdate">A list of columns to update</param>
         /// <returns>true if the entity was updated</returns>
         public virtual async Task<bool> UpdateAsync<T>(IDbConnection connection, IDbTransaction transaction,
-            int? commandTimeout, TableInfo tableInfo, T entityToUpdate, IEnumerable<string> columnsToUpdate) =>
-            await new Task<bool>(() => false);
+            int? commandTimeout, TableInfo tableInfo, T entityToUpdate, IEnumerable<string> columnsToUpdate)
+        {
+            if (await UpdateInternalAsync(connection, transaction, commandTimeout, tableInfo, entityToUpdate, columnsToUpdate))
+            {
+                return true;
+            }
+
+            // Update failed, check for optimistic concurrency failure
+            if (tableInfo.ConcurrencyCheckColumns.Any())
+            {
+                await CheckConcurrencyAsync(connection, transaction, commandTimeout, tableInfo, entityToUpdate);
+            }
+
+            return false;
+        }
 
         /// <summary>
         ///     updates an entity into table "Ts"
@@ -825,19 +852,19 @@ namespace Dapper.Database.Adapters
         /// <summary>
         ///     Checks whether the specified object exists, and if so, throws a concurrency exception.
         /// </summary>
-        /// <typeparam name="T"></typeparam>
-        /// <param name="connection"></param>
-        /// <param name="transaction"></param>
-        /// <param name="commandTimeout"></param>
-        /// <param name="tableInfo"></param>
-        /// <param name="entity"></param>
+        /// <typeparam name="T">the entity type</typeparam>
+        /// <param name="connection">Open SqlConnection</param>
+        /// <param name="transaction">The transaction to run under, null (the default) if none</param>
+        /// <param name="commandTimeout">Number of seconds before command execution timeout</param>
+        /// <param name="tableInfo">table information about the entity</param>
+        /// <param name="entity">Entity to check</param>
         /// <exception cref="OptimisticConcurrencyException">if the object exists</exception>
         /// <remarks>
         /// Base implementation currently assumes the caller performed an operation that resulted in possible concurrency failure,
         /// and does not attempt to compare the values again.
         /// </remarks>
-        protected virtual async Task CheckConcurrencyAsync<T>(IDbConnection connection, IDbTransaction transaction, int? commandTimeout,
-            TableInfo tableInfo, T entity)
+        protected virtual async Task CheckConcurrencyAsync<T>(IDbConnection connection, IDbTransaction transaction,
+            int? commandTimeout, TableInfo tableInfo, T entity)
         {
             if (!tableInfo.ConcurrencyCheckColumns.Any())
                 return;
