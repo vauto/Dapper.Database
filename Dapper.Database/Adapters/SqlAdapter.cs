@@ -473,8 +473,9 @@ namespace Dapper.Database.Adapters
         #region Update Implementations
 
         /// <summary>
-        ///     updates an entity into table "Ts"
+        ///     Performs the SQL <c>UPDATE</c> statement for <see cref="Update{T}"/>.
         /// </summary>
+        /// <typeparam name="T">the entity type</typeparam>
         /// <param name="connection">Open SqlConnection</param>
         /// <param name="transaction">The transaction to run under, null (the default) if none</param>
         /// <param name="commandTimeout">Number of seconds before command execution timeout</param>
@@ -482,8 +483,37 @@ namespace Dapper.Database.Adapters
         /// <param name="entityToUpdate">Entity to update</param>
         /// <param name="columnsToUpdate">A list of columns to update</param>
         /// <returns>true if the entity was updated</returns>
+        protected abstract bool UpdateInternal<T>(IDbConnection connection, IDbTransaction transaction,
+            int? commandTimeout, TableInfo tableInfo, T entityToUpdate, IEnumerable<string> columnsToUpdate);
+
+        /// <summary>
+        ///     updates an entity into table "Ts"
+        /// </summary>
+        /// <typeparam name="T">the entity type</typeparam>
+        /// <param name="connection">Open SqlConnection</param>
+        /// <param name="transaction">The transaction to run under, null (the default) if none</param>
+        /// <param name="commandTimeout">Number of seconds before command execution timeout</param>
+        /// <param name="tableInfo">table information about the entity</param>
+        /// <param name="entityToUpdate">Entity to update</param>
+        /// <param name="columnsToUpdate">A list of columns to update</param>
+        /// <returns>true if the entity was updated</returns>
+        /// <exception cref="OptimisticConcurrencyException">if <paramref name="entityToUpdate"/> was modified by a different session</exception>
         public virtual bool Update<T>(IDbConnection connection, IDbTransaction transaction, int? commandTimeout,
-            TableInfo tableInfo, T entityToUpdate, IEnumerable<string> columnsToUpdate) => false;
+            TableInfo tableInfo, T entityToUpdate, IEnumerable<string> columnsToUpdate)
+        {
+            if (UpdateInternal(connection, transaction, commandTimeout, tableInfo, entityToUpdate, columnsToUpdate))
+            {
+                return true;
+            }
+
+            // Update failed, check for optimistic concurrency failure
+            if (tableInfo.ConcurrencyCheckColumns.Any())
+            {
+                CheckConcurrency(connection, transaction, commandTimeout, tableInfo, entityToUpdate);
+            }
+
+            return false;
+        }
 
         /// <summary>
         ///     updates an entity into table "Ts"
@@ -783,7 +813,7 @@ namespace Dapper.Database.Adapters
         protected virtual void CheckConcurrency<T>(IDbConnection connection, IDbTransaction transaction, int? commandTimeout,
             TableInfo tableInfo, T entity)
         {
-            if (!tableInfo.ComparisonColumns.Any())
+            if (!tableInfo.ConcurrencyCheckColumns.Any())
                 return;
 
             if (Exists(connection, transaction, commandTimeout, tableInfo, entity))
@@ -809,7 +839,7 @@ namespace Dapper.Database.Adapters
         protected virtual async Task CheckConcurrencyAsync<T>(IDbConnection connection, IDbTransaction transaction, int? commandTimeout,
             TableInfo tableInfo, T entity)
         {
-            if (!tableInfo.ComparisonColumns.Any())
+            if (!tableInfo.ConcurrencyCheckColumns.Any())
                 return;
 
             if (await ExistsAsync(connection, transaction, commandTimeout, tableInfo, entity))
