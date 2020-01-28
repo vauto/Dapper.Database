@@ -22,7 +22,7 @@ namespace Dapper.Database.Extensions
         /// </param>
         /// <param name="transaction">The transaction to run under, null (the default) if none</param>
         /// <param name="commandTimeout">Number of seconds before command execution timeout</param>
-        /// <returns>true if deleted, false if not found</returns>
+        /// <returns>true if deleted, false if not found or was modified</returns>
         public static bool Delete<T>(this IDbConnection connection, T entityToDelete, IDbTransaction transaction = null,
             int? commandTimeout = null) where T : class
         {
@@ -30,11 +30,8 @@ namespace Dapper.Database.Extensions
                 throw new ArgumentNullException(nameof(entityToDelete), "Cannot Delete null Object");
 
             var sqlHelper = new SqlQueryHelper(typeof(T), connection);
-            var deleteQuery =
-                sqlHelper.GenerateCompositeKeyQuery(entityToDelete,
-                    (ti, sql) => sqlHelper.Adapter.DeleteQuery(ti, sql));
-            return connection.Execute(deleteQuery.SqlStatement, deleteQuery.Parameters, transaction, commandTimeout) >
-                   0;
+            return sqlHelper.Adapter.Delete(connection, transaction, commandTimeout, sqlHelper.TableInfo,
+                entityToDelete);
         }
 
         /// <summary>
@@ -48,6 +45,7 @@ namespace Dapper.Database.Extensions
         public static bool Delete<T>(this IDbConnection connection, object primaryKeyValue,
             IDbTransaction transaction = null, int? commandTimeout = null) where T : class
         {
+            // FIXME need to rewrite this for concurrency check!
             var qh = new SqlQueryHelper(typeof(T), connection);
             var deleteQuery = qh.GenerateSingleKeyQuery(primaryKeyValue, (ti, sql) => qh.Adapter.DeleteQuery(ti, sql));
             return connection.Execute(deleteQuery.SqlStatement, deleteQuery.Parameters, transaction, commandTimeout) >
@@ -123,7 +121,7 @@ namespace Dapper.Database.Extensions
         /// </param>
         /// <param name="transaction">The transaction to run under, null (the default) if none</param>
         /// <param name="commandTimeout">Number of seconds before command execution timeout</param>
-        /// <returns>true if deleted, false if not found</returns>
+        /// <returns>true if deleted, false if not found or was modified</returns>
         public static async Task<bool> DeleteAsync<T>(this IDbConnection connection, T entityToDelete,
             IDbTransaction transaction = null, int? commandTimeout = null) where T : class
         {
@@ -131,11 +129,8 @@ namespace Dapper.Database.Extensions
                 throw new ArgumentNullException(nameof(entityToDelete), "Cannot Delete null Object");
 
             var sqlHelper = new SqlQueryHelper(typeof(T), connection);
-            var deleteQuery =
-                sqlHelper.GenerateCompositeKeyQuery(entityToDelete,
-                    (ti, sql) => sqlHelper.Adapter.DeleteQuery(ti, sql));
-            return await connection.ExecuteAsync(deleteQuery.SqlStatement, deleteQuery.Parameters, transaction,
-                       commandTimeout) > 0;
+            return await sqlHelper.Adapter.DeleteAsync(connection, transaction, commandTimeout, sqlHelper.TableInfo,
+                entityToDelete);
         }
 
         /// <summary>
@@ -149,6 +144,7 @@ namespace Dapper.Database.Extensions
         public static async Task<bool> DeleteAsync<T>(this IDbConnection connection, object primaryKeyValue,
             IDbTransaction transaction = null, int? commandTimeout = null) where T : class
         {
+            // FIXME need to rewrite this for concurrency check!
             var sqlHelper = new SqlQueryHelper(typeof(T), connection);
             var deleteQuery =
                 sqlHelper.GenerateSingleKeyQuery(primaryKeyValue, (ti, sql) => sqlHelper.Adapter.DeleteQuery(ti, sql));

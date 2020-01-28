@@ -31,6 +31,12 @@ namespace Dapper.Database.Adapters
             new ConcurrentDictionary<RuntimeTypeHandle, string>();
 
         /// <summary>
+        ///     Cache for Delete Queries
+        /// </summary>
+        protected static readonly ConcurrentDictionary<RuntimeTypeHandle, string> DeleteQueries =
+            new ConcurrentDictionary<RuntimeTypeHandle, string>();
+
+        /// <summary>
         ///     Parameter name for page size in <see cref="GetPageListQuery" />.
         /// </summary>
         protected virtual string PageSizeParamName { get; } = "__PageSize";
@@ -70,6 +76,21 @@ namespace Dapper.Database.Adapters
                 tableInfo.ClassType.TypeHandle,
                 () => columnsToUpdate == null || !columnsToUpdate.Any(),
                 () => BuildUpdateQuery(tableInfo, columnsToUpdate));
+
+        /// <summary>
+        ///     Default implementation of a delete query
+        /// </summary>
+        /// <param name="tableInfo">table information about the entity</param>
+        /// <returns>An insert sql statement</returns>
+        /// <remarks>
+        ///     Statements are cached by type handle.
+        /// </remarks>
+        public virtual string DeleteQuery(TableInfo tableInfo) =>
+            DeleteQueries.Acquire(
+                tableInfo.ClassType.TypeHandle,
+                () => true,
+                () => BuildDeleteQuery(tableInfo)
+            );
 
         /// <summary>
         ///     Default implementation of a count query
@@ -254,6 +275,15 @@ namespace Dapper.Database.Adapters
             return
                 $"update {EscapeTableName(tableInfo)} set {EscapeAssignmentList(updates)} where {EscapeWhereList(tableInfo.ComparisonColumns)}";
         }
+
+        /// <summary>
+        ///     Default implementation of a delete query.
+        /// </summary>
+        /// <param name="tableInfo">table information about the entity</param>
+        /// <returns>An insert sql statement</returns>
+        protected virtual string BuildDeleteQuery(TableInfo tableInfo)
+            =>
+                $"delete from {EscapeTableName(tableInfo)} where {EscapeWhereList(tableInfo.ComparisonColumns)}";
 
         /// <summary>
         ///     Returns the format for table name
@@ -622,5 +652,78 @@ namespace Dapper.Database.Adapters
         }
 
         #endregion
+
+        #region Delete Implementations
+
+        /// <summary>
+        ///     Deletes an entity from table "Ts"
+        /// </summary>
+        /// <param name="connection">Open SqlConnection</param>
+        /// <param name="transaction">The transaction to run under, null (the default) if none</param>
+        /// <param name="commandTimeout">Number of seconds before command execution timeout</param>
+        /// <param name="tableInfo">table information about the entity</param>
+        /// <param name="entityToDelete">Entity to delete</param>
+        /// <returns>true if the entity was deleted</returns>
+        public virtual bool Delete<T>(IDbConnection connection, IDbTransaction transaction, int? commandTimeout,
+            TableInfo tableInfo, T entityToDelete)
+        {
+            return connection.Execute(DeleteQuery(tableInfo), entityToDelete, transaction, commandTimeout) > 0;
+        }
+
+        /// <summary>
+        ///     Deletes a collection of entities from table "Ts"
+        /// </summary>
+        /// <param name="connection">Open SqlConnection</param>
+        /// <param name="transaction">The transaction to run under, null (the default) if none</param>
+        /// <param name="commandTimeout">Number of seconds before command execution timeout</param>
+        /// <param name="tableInfo">table information about the entity</param>
+        /// <param name="entitiesToDelete">List Entities to delete</param>
+        /// <returns>A sequence indicating true or false whether each entity was deleted</returns>
+        public virtual IEnumerable<bool> DeleteList<T>(IDbConnection connection, IDbTransaction transaction, int? commandTimeout,
+            TableInfo tableInfo, IEnumerable<T> entitiesToDelete)
+        {
+            var toDelete = entitiesToDelete as T[] ?? entitiesToDelete.ToArray();
+            foreach (var e in toDelete)
+                yield return Delete(connection, transaction, commandTimeout, tableInfo, e);
+        }
+
+        /// <summary>
+        ///     Deletes an entity from table "Ts"
+        /// </summary>
+        /// <param name="connection">Open SqlConnection</param>
+        /// <param name="transaction">The transaction to run under, null (the default) if none</param>
+        /// <param name="commandTimeout">Number of seconds before command execution timeout</param>
+        /// <param name="tableInfo">table information about the entity</param>
+        /// <param name="entityToDelete">Entity to delete</param>
+        /// <returns>true if the entity was deleted</returns>
+        public virtual async Task<bool> DeleteAsync<T>(IDbConnection connection, IDbTransaction transaction,
+            int? commandTimeout, TableInfo tableInfo, T entityToDelete)
+        {
+            return await connection.ExecuteAsync(DeleteQuery(tableInfo), entityToDelete, transaction, commandTimeout) > 0;
+        }
+
+        /// <summary>
+        ///     Deletes a collection of entities from table "Ts"
+        /// </summary>
+        /// <param name="connection">Open SqlConnection</param>
+        /// <param name="transaction">The transaction to run under, null (the default) if none</param>
+        /// <param name="commandTimeout">Number of seconds before command execution timeout</param>
+        /// <param name="tableInfo">table information about the entity</param>
+        /// <param name="entitiesToDelete">List Entities to delete</param>
+        /// <returns>true if the entity was deleted</returns>
+        public virtual async Task<IEnumerable<bool>> DeleteListAsync<T>(IDbConnection connection, IDbTransaction transaction,
+            int? commandTimeout, TableInfo tableInfo, IEnumerable<T> entitiesToDelete)
+        {
+            // LATER: should we use IAsyncEnumerable<T> in .NET Core >= 3.0? It's not compatible with Framework.
+            var toDelete = entitiesToDelete as T[] ?? entitiesToDelete.ToArray();
+            var result = new List<bool>(toDelete.Length);
+            foreach (var e in toDelete)
+                // ReSharper disable once PossibleMultipleEnumeration
+                result.Add(await DeleteAsync(connection, transaction, commandTimeout, tableInfo, e));
+
+            return result;
+        }
+
+#endregion
     }
 }
