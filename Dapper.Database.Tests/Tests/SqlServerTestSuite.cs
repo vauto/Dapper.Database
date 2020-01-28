@@ -134,5 +134,40 @@ namespace Dapper.Database.Tests
                 Assert.NotEqual(gp.ConcurrencyToken, p.ConcurrencyToken);
             }
         }
+
+        [Fact]
+        [Trait("Category", "Delete")]
+        public void DeleteTimestamp()
+        {
+            using (var db = GetSqlDatabase())
+            {
+                var p = new PersonTimestamp { GuidId = Guid.NewGuid(), FirstName = "Alice", LastName = "Jones" };
+                Assert.True(db.Insert(p));
+                Assert.NotNull(p.ConcurrencyToken);
+
+                Assert.True(db.Delete(p), "ConcurrencyToken matched, delete succeeded");
+
+                Assert.False(db.Exists<PersonTimestamp>(p.GuidId));
+            }
+        }
+
+        [Fact]
+        [Trait("Category", "Delete")]
+        public void DeleteTimestampModified()
+        {
+            using (var db = GetSqlDatabase())
+            {
+                var p = new PersonTimestamp { GuidId = Guid.NewGuid(), FirstName = "Alice", LastName = "Jones" };
+                Assert.True(db.Insert(p));
+                Assert.NotNull(p.ConcurrencyToken);
+
+                // Simulate an independent change
+                db.Execute("update Person set Age = 1 where GuidId = @GuidId", p);
+
+                Assert.False(db.Delete(p), "ConcurrencyToken did not match, delete failed");
+
+                Assert.True(db.Exists<PersonTimestamp>(p.GuidId));
+            }
+        }
     }
 }
