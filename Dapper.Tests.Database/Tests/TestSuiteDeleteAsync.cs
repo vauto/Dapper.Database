@@ -213,5 +213,38 @@ namespace Dapper.Tests.Database
                 Assert.Equal(1, await db.CountAsync<PersonIdentity>("where FirstName = 'DeleteOtherAsync'"));
             }
         }
+
+        [Fact]
+        [Trait("Category", "DeleteAsync")]
+        public async Task DeleteConcurrencyCheckAsync()
+        {
+            using (var db = GetSqlDatabase())
+            {
+                var p = new PersonConcurrencyCheck { GuidId = Guid.NewGuid(), FirstName = "Alice", LastName = "Jones", StringId = "abc" };
+                Assert.True(await db.InsertAsync(p));
+
+                Assert.True(await db.DeleteAsync(p), "StringId is the same");
+
+                Assert.False(await db.ExistsAsync<PersonConcurrencyCheck>(p.GuidId));
+            }
+        }
+
+        [Fact]
+        [Trait("Category", "DeleteAsync")]
+        public async Task DeleteConcurrencyCheckModifiedAsync()
+        {
+            using (var db = GetSqlDatabase())
+            {
+                var p = new PersonConcurrencyCheck { GuidId = Guid.NewGuid(), FirstName = "Alice", LastName = "Jones", StringId = "abc" };
+                Assert.True(await db.InsertAsync(p));
+
+                // Modify one of the concurrency-check columns to simulate it changing out from underneath us.
+                await db.ExecuteAsync("update Person set StringId = 'xyz' where GuidId = @GuidId", p);
+
+                Assert.False(await db.DeleteAsync(p), "StringId changed elsewhere, update not permitted");
+
+                Assert.True(await db.ExistsAsync<PersonConcurrencyCheck>(p.GuidId));
+            }
+        }
     }
 }

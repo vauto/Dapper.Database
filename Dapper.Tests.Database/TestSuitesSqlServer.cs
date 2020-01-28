@@ -192,7 +192,7 @@ namespace Dapper.Tests.Database
 
                 p.FirstName = "Greg";
                 p.LastName = "Smith";
-                Assert.True(db.Update(p), "ConcurrencyToken matched");
+                Assert.True(db.Update(p), "ConcurrencyToken matched, update succeeded");
                 Assert.NotEqual(token1, p.ConcurrencyToken);
 
                 // Simulate an independent change
@@ -200,7 +200,7 @@ namespace Dapper.Tests.Database
 
                 p.FirstName = "Alice";
                 p.LastName = "Jones";
-                Assert.False(db.Update(p), "ConcurrencyToken should be different");
+                Assert.False(db.Update(p), "ConcurrencyToken did not match, update failed");
 
                 var gp = db.Get<PersonTimestamp>(p.GuidId);
 
@@ -219,14 +219,64 @@ namespace Dapper.Tests.Database
                 var p = new PersonTimestamp { GuidId = Guid.NewGuid(), FirstName = "Alice", LastName = "Jones" };
                 Assert.True(db.Insert(p));
                 Assert.NotNull(p.ConcurrencyToken);
-                var token1 = p.ConcurrencyToken;
+
+                Assert.True(db.Delete(p), "ConcurrencyToken matched, delete succeeded");
+
+                Assert.False(db.Exists<PersonTimestamp>(p.GuidId));
+            }
+        }
+
+        [Fact]
+        [Trait("Category", "Delete")]
+        public void DeleteTimestampModified()
+        {
+            using (var db = GetSqlDatabase())
+            {
+                var p = new PersonTimestamp { GuidId = Guid.NewGuid(), FirstName = "Alice", LastName = "Jones" };
+                Assert.True(db.Insert(p));
+                Assert.NotNull(p.ConcurrencyToken);
 
                 // Simulate an independent change
                 db.Execute("update Person set Age = 1 where GuidId = @GuidId", p);
 
-                Assert.False(db.Delete(p), "ConcurrencyToken should be different");
+                Assert.False(db.Delete(p), "ConcurrencyToken did not match, delete failed");
 
                 Assert.True(db.Exists<PersonTimestamp>(p.GuidId));
+            }
+        }
+
+        [Fact]
+        [Trait("Category", "DeleteAsync")]
+        public async Task DeleteTimestampAsync()
+        {
+            using (var db = GetSqlDatabase())
+            {
+                var p = new PersonTimestamp { GuidId = Guid.NewGuid(), FirstName = "Alice", LastName = "Jones" };
+                Assert.True(await db.InsertAsync(p));
+                Assert.NotNull(p.ConcurrencyToken);
+
+                Assert.True(await db.DeleteAsync(p), "ConcurrencyToken matched, delete succeeded");
+
+                Assert.False(await db.ExistsAsync<PersonTimestamp>(p.GuidId));
+            }
+        }
+
+        [Fact]
+        [Trait("Category", "DeleteAsync")]
+        public async Task DeleteTimestampModifiedAsync()
+        {
+            using (var db = GetSqlDatabase())
+            {
+                var p = new PersonTimestamp { GuidId = Guid.NewGuid(), FirstName = "Alice", LastName = "Jones" };
+                Assert.True(await db.InsertAsync(p));
+                Assert.NotNull(p.ConcurrencyToken);
+
+                // Simulate an independent change
+                await db.ExecuteAsync("update Person set Age = 1 where GuidId = @GuidId", p);
+
+                Assert.False(await db.DeleteAsync(p), "ConcurrencyToken did not match, delete failed");
+
+                Assert.True(await db.ExistsAsync<PersonTimestamp>(p.GuidId));
             }
         }
 
