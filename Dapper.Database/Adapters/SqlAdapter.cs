@@ -78,7 +78,7 @@ namespace Dapper.Database.Adapters
                 () => BuildUpdateQuery(tableInfo, columnsToUpdate));
 
         /// <summary>
-        ///     Default implementation of a delete query
+        ///     Default implementation of a delete object query
         /// </summary>
         /// <param name="tableInfo">table information about the entity</param>
         /// <returns>An insert sql statement</returns>
@@ -671,23 +671,6 @@ namespace Dapper.Database.Adapters
         }
 
         /// <summary>
-        ///     Deletes a collection of entities from table "Ts"
-        /// </summary>
-        /// <param name="connection">Open SqlConnection</param>
-        /// <param name="transaction">The transaction to run under, null (the default) if none</param>
-        /// <param name="commandTimeout">Number of seconds before command execution timeout</param>
-        /// <param name="tableInfo">table information about the entity</param>
-        /// <param name="entitiesToDelete">List Entities to delete</param>
-        /// <returns>A sequence indicating true or false whether each entity was deleted</returns>
-        public virtual IEnumerable<bool> DeleteList<T>(IDbConnection connection, IDbTransaction transaction, int? commandTimeout,
-            TableInfo tableInfo, IEnumerable<T> entitiesToDelete)
-        {
-            var toDelete = entitiesToDelete as T[] ?? entitiesToDelete.ToArray();
-            foreach (var e in toDelete)
-                yield return Delete(connection, transaction, commandTimeout, tableInfo, e);
-        }
-
-        /// <summary>
         ///     Deletes an entity from table "Ts"
         /// </summary>
         /// <param name="connection">Open SqlConnection</param>
@@ -702,28 +685,6 @@ namespace Dapper.Database.Adapters
             return await connection.ExecuteAsync(DeleteQuery(tableInfo), entityToDelete, transaction, commandTimeout) > 0;
         }
 
-        /// <summary>
-        ///     Deletes a collection of entities from table "Ts"
-        /// </summary>
-        /// <param name="connection">Open SqlConnection</param>
-        /// <param name="transaction">The transaction to run under, null (the default) if none</param>
-        /// <param name="commandTimeout">Number of seconds before command execution timeout</param>
-        /// <param name="tableInfo">table information about the entity</param>
-        /// <param name="entitiesToDelete">List Entities to delete</param>
-        /// <returns>true if the entity was deleted</returns>
-        public virtual async Task<IEnumerable<bool>> DeleteListAsync<T>(IDbConnection connection, IDbTransaction transaction,
-            int? commandTimeout, TableInfo tableInfo, IEnumerable<T> entitiesToDelete)
-        {
-            // LATER: should we use IAsyncEnumerable<T> in .NET Core >= 3.0? It's not compatible with Framework.
-            var toDelete = entitiesToDelete as T[] ?? entitiesToDelete.ToArray();
-            var result = new List<bool>(toDelete.Length);
-            foreach (var e in toDelete)
-                // ReSharper disable once PossibleMultipleEnumeration
-                result.Add(await DeleteAsync(connection, transaction, commandTimeout, tableInfo, e));
-
-            return result;
-        }
-
-#endregion
+        #endregion
     }
 }

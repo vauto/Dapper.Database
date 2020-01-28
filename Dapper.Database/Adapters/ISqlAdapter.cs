@@ -107,18 +107,6 @@ namespace Dapper.Database.Adapters
             TableInfo tableInfo, T entityToDelete);
 
         /// <summary>
-        ///     Deletes a collection of entities from table "Ts"
-        /// </summary>
-        /// <param name="connection">Open SqlConnection</param>
-        /// <param name="transaction">The transaction to run under, null (the default) if none</param>
-        /// <param name="commandTimeout">Number of seconds before command execution timeout</param>
-        /// <param name="tableInfo">table information about the entity</param>
-        /// <param name="entitiesToDelete">List Entities to delete</param>
-        /// <returns>A sequence indicating true or false whether each entity was deleted</returns>
-        IEnumerable<bool> DeleteList<T>(IDbConnection connection, IDbTransaction transaction, int? commandTimeout,
-            TableInfo tableInfo, IEnumerable<T> entitiesToDelete);
-
-        /// <summary>
         ///     constructs an insert query
         /// </summary>
         /// <param name="tableInfo">table information about the entity</param>
@@ -290,18 +278,6 @@ namespace Dapper.Database.Adapters
         /// <returns>true if the entity was deleted</returns>
         Task<bool> DeleteAsync<T>(IDbConnection connection, IDbTransaction transaction,
             int? commandTimeout, TableInfo tableInfo, T entityToDelete);
-
-        /// <summary>
-        ///     Deletes a collection of entities from table "Ts"
-        /// </summary>
-        /// <param name="connection">Open SqlConnection</param>
-        /// <param name="transaction">The transaction to run under, null (the default) if none</param>
-        /// <param name="commandTimeout">Number of seconds before command execution timeout</param>
-        /// <param name="tableInfo">table information about the entity</param>
-        /// <param name="entitiesToDelete">List Entities to delete</param>
-        /// <returns>true if the entity was deleted</returns>
-        Task<IEnumerable<bool>> DeleteListAsync<T>(IDbConnection connection, IDbTransaction transaction,
-            int? commandTimeout, TableInfo tableInfo, IEnumerable<T> entitiesToDelete);
 
         /// <summary>
         /// </summary>
