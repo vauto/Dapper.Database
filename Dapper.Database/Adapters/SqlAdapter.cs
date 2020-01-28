@@ -698,7 +698,13 @@ namespace Dapper.Database.Adapters
         public virtual bool Delete<T>(IDbConnection connection, IDbTransaction transaction, int? commandTimeout,
             TableInfo tableInfo, T entityToDelete)
         {
-            return connection.Execute(DeleteQuery(tableInfo), entityToDelete, transaction, commandTimeout) > 0;
+            if (connection.Execute(DeleteQuery(tableInfo), entityToDelete, transaction, commandTimeout) > 0)
+            {
+                return true;
+            }
+
+            CheckConcurrency(connection, transaction, tableInfo, entityToDelete);
+            return false;
         }
 
         /// <summary>
@@ -713,7 +719,13 @@ namespace Dapper.Database.Adapters
         public virtual async Task<bool> DeleteAsync<T>(IDbConnection connection, IDbTransaction transaction,
             int? commandTimeout, TableInfo tableInfo, T entityToDelete)
         {
-            return await connection.ExecuteAsync(DeleteQuery(tableInfo), entityToDelete, transaction, commandTimeout) > 0;
+            if (await connection.ExecuteAsync(DeleteQuery(tableInfo), entityToDelete, transaction, commandTimeout) > 0)
+            {
+                return true;
+            }
+
+            await CheckConcurrencyAsync(connection, transaction, tableInfo, entityToDelete);
+            return false;
         }
 
         #endregion
