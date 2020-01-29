@@ -164,7 +164,7 @@ namespace Dapper.Database.Tests
                 // Simulate an independent change
                 db.Execute("update Person set Age = 1 where GuidId = @GuidId", p);
 
-                Assert.False(db.Delete(p), "ConcurrencyToken did not match, delete failed");
+                Assert.ThrowsAny<OptimisticConcurrencyException>(() => db.Delete(p));
 
                 Assert.True(db.Exists<PersonTimestamp>(p.GuidId));
             }
