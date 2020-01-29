@@ -782,7 +782,7 @@ namespace Dapper.Database.Adapters
                 return true;
             }
 
-            CheckConcurrency(connection, transaction, tableInfo, entityToDelete);
+            CheckConcurrency(connection, transaction, commandTimeout, tableInfo, entityToDelete);
             return false;
         }
 
@@ -803,7 +803,7 @@ namespace Dapper.Database.Adapters
                 return true;
             }
 
-            await CheckConcurrencyAsync(connection, transaction, tableInfo, entityToDelete);
+            await CheckConcurrencyAsync(connection, transaction, commandTimeout, tableInfo, entityToDelete);
             return false;
         }
 
