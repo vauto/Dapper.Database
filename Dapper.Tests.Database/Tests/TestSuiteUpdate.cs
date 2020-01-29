@@ -201,6 +201,7 @@ namespace Dapper.Tests.Database
                 p.LastName = "Smith";
                 Assert.True(db.Update(p), "StringId unchanged");
 
+                // Modify one of the concurrency-check columns to simulate it changing out from underneath us.
                 db.Execute("update Person set StringId = 'xyz' where GuidId = @GuidId", p);
 
                 p.FirstName = "Alice";
