@@ -88,7 +88,7 @@ namespace Dapper.Database.Adapters
         ///     Default implementation of a delete object query
         /// </summary>
         /// <param name="tableInfo">table information about the entity</param>
-        /// <returns>An insert sql statement</returns>
+        /// <returns>A delete sql statement</returns>
         /// <remarks>
         ///     Statements are cached by type handle.
         /// </remarks>
@@ -321,10 +321,10 @@ namespace Dapper.Database.Adapters
         }
 
         /// <summary>
-        ///     Default implementation of a delete query.
+        ///     Default implementation of a delete object query.
         /// </summary>
         /// <param name="tableInfo">table information about the entity</param>
-        /// <returns>An insert sql statement</returns>
+        /// <returns>A delete sql statement</returns>
         protected virtual string BuildDeleteQuery(TableInfo tableInfo)
             =>
                 $"delete from {EscapeTableName(tableInfo)} where {EscapeWhereList(tableInfo.ComparisonColumns)}";
